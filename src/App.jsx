@@ -550,7 +550,6 @@ function ExerciseCard({ exercise, sets, onChange, onAddSet, onRemoveSet, onDelet
     </motion.div>
   );
 }
-
 // ─── Login ────────────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin }) {
   const [username, setUsername] = useState("");
@@ -578,16 +577,19 @@ function LoginScreen({ onLogin }) {
         </div>
         <Card style={{ padding:24 }}>
           <div style={{ fontSize:13, color:T.muted, marginBottom:6 }}>Username</div>
-          <Input value={username} onChange={e=>setUsername(e.target.value)} placeholder="Enter username"/>
+          <Input value={username} onChange={e=>setUsername(e.target.value)} placeholder="Enter username"
+            onKeyDown={e=>e.key==="Enter"&&handle()}/>
           <div style={{ fontSize:13, color:T.muted, margin:"14px 0 6px" }}>Password</div>
           <Input type="password" value={password} onChange={e=>setPassword(e.target.value)}
             placeholder="Enter password" onKeyDown={e=>e.key==="Enter"&&handle()}/>
-          {error && <div style={{ color:T.danger, fontSize:12, marginTop:10 }}>{error}</div>}
-          <div style={{ marginTop:20 }}><GlowBtn full onClick={handle}><Icon name="user" size={16} color="#fff"/> Sign in</GlowBtn></div>
+          {error && <motion.div initial={{opacity:0}} animate={{opacity:1}}
+            style={{ color:T.danger, fontSize:12, marginTop:10 }}>{error}</motion.div>}
+          <div style={{ marginTop:20 }}>
+            <GlowBtn full onClick={handle}>
+              <Icon name="user" size={16} color="#fff"/> Sign in
+            </GlowBtn>
+          </div>
         </Card>
-        <div style={{ textAlign:"center", color:T.muted, fontSize:11, marginTop:20 }}>
-          Default: <span style={{color:T.yellow}}>mukesh</span> / <span style={{color:T.yellow}}>admin123</span>
-        </div>
       </motion.div>
     </div>
   );
@@ -1269,6 +1271,291 @@ function HistoryView({ currentUser, onEditSession }) {
   );
 }
 
+// ─── Streak View ─────────────────────────────────────────────────────────────
+function StreakView({ currentUser }) {
+  const [month, setMonth] = useState(() => {
+    const n = new Date(); return { year: n.getFullYear(), month: n.getMonth() };
+  });
+
+  const allSessions = S.get("wt_sessions", []).filter(s => s.userId === currentUser.id);
+  const trainedDates = new Set(allSessions.map(s => s.date));
+
+  // ── Calendar helpers ──
+  const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const dayLabels  = ["M","T","W","T","F","S","S"];
+
+  function daysInMonth(y, m) { return new Date(y, m+1, 0).getDate(); }
+  function firstDayOfMonth(y, m) {
+    // 0=Mon…6=Sun
+    const d = new Date(y, m, 1).getDay();
+    return d === 0 ? 6 : d - 1;
+  }
+  function toISO(y, m, d) {
+    return `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+  }
+
+  const todayISO2 = todayISO();
+  const totalDays = daysInMonth(month.year, month.month);
+  const startOffset = firstDayOfMonth(month.year, month.month);
+
+  // Build calendar grid
+  const cells = [];
+  for (let i = 0; i < startOffset; i++) cells.push(null);
+  for (let d = 1; d <= totalDays; d++) cells.push(d);
+
+  // ── Month stats ──
+  const monthSessions = allSessions.filter(s => {
+    const d = new Date(s.date);
+    return d.getMonth() === month.month && d.getFullYear() === month.year;
+  });
+  const trainedThisMonth = new Set(monthSessions.map(s => s.date)).size;
+
+  // Scheduled workout days this month (Mon–Sat = 6 days/week, Sun = optional)
+  // We count Mon–Sat as expected training days
+  let expectedDays = 0;
+  const today = new Date();
+  for (let d = 1; d <= totalDays; d++) {
+    const dt = new Date(month.year, month.month, d);
+    if (dt > today) break;
+    const dow = dt.getDay(); // 0=Sun
+    if (dow !== 0) expectedDays++; // Mon–Sat
+  }
+  const skippedDays  = Math.max(0, expectedDays - trainedThisMonth);
+  const consistency  = expectedDays > 0 ? Math.round((trainedThisMonth / expectedDays) * 100) : 0;
+
+  // ── All-time streak ──
+  const streak = calcStreak(allSessions);
+  const longestStreak = (() => {
+    const sorted = [...trainedDates].sort();
+    let best = 0, cur = 0;
+    for (let i = 0; i < sorted.length; i++) {
+      if (i === 0) { cur = 1; best = 1; continue; }
+      const prev = new Date(sorted[i-1]), curr = new Date(sorted[i]);
+      const diff = Math.round((curr - prev) / (1000*60*60*24));
+      cur = diff === 1 ? cur + 1 : 1;
+      if (cur > best) best = cur;
+    }
+    return best;
+  })();
+
+  // ── Color logic ──
+  function dayColor(iso) {
+    if (!iso || new Date(iso) > new Date()) return "future";
+    if (trainedDates.has(iso)) return "trained";
+    const dt = new Date(iso);
+    if (dt.getDay() === 0) return "rest"; // Sunday = optional rest
+    return "skipped";
+  }
+
+  const colorMap = {
+    trained: T.blue,
+    skipped: `${T.danger}55`,
+    rest:    T.border,
+    future:  "transparent",
+  };
+  const bgMap = {
+    trained: `${T.blue}22`,
+    skipped: `${T.danger}11`,
+    rest:    T.cardHi,
+    future:  "transparent",
+  };
+
+  function prevMonth() {
+    setMonth(p => p.month === 0
+      ? { year: p.year-1, month: 11 }
+      : { year: p.year, month: p.month-1 });
+  }
+  function nextMonth() {
+    const now = new Date();
+    if (month.year === now.getFullYear() && month.month === now.getMonth()) return;
+    setMonth(p => p.month === 11
+      ? { year: p.year+1, month: 0 }
+      : { year: p.year, month: p.month+1 });
+  }
+
+  const isCurrentMonth = month.year === new Date().getFullYear() && month.month === new Date().getMonth();
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:20 }}>
+        <div style={{ width:38, height:38, borderRadius:12, background:`${T.blue}22`,
+          display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <Icon name="fire" size={18} color={T.blue}/>
+        </div>
+        <div>
+          <div style={{ fontSize:16, fontWeight:800 }}>Workout Streak</div>
+          <div style={{ fontSize:11, color:T.muted }}>Attendance · Consistency · Records</div>
+        </div>
+      </div>
+
+      {/* Streak hero */}
+      <Card style={{ marginBottom:16, padding:"20px 18px", background:`linear-gradient(135deg, ${T.blueDim}, ${T.card})`,
+        border:`1px solid ${T.blue}44` }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <div>
+            <div style={{ fontSize:11, color:T.blue, fontWeight:700, letterSpacing:"0.1em" }}>CURRENT STREAK</div>
+            <div style={{ fontSize:52, fontWeight:900, color:T.text, letterSpacing:"-2px", lineHeight:1.1 }}>
+              {streak}<span style={{ fontSize:20, color:T.muted, fontWeight:400 }}>d</span>
+            </div>
+            <div style={{ fontSize:12, color:T.muted, marginTop:4 }}>
+              Best: <span style={{ color:T.yellow, fontWeight:700 }}>{longestStreak} days</span>
+            </div>
+          </div>
+          {/* Fire ring */}
+          <div style={{ position:"relative", width:80, height:80 }}>
+            <svg width={80} height={80} style={{ transform:"rotate(-90deg)" }}>
+              <circle cx={40} cy={40} r={32} fill="none" stroke={T.border} strokeWidth={6}/>
+              <circle cx={40} cy={40} r={32} fill="none"
+                stroke={streak>=longestStreak&&streak>0?T.yellow:T.blue} strokeWidth={6}
+                strokeDasharray={2*Math.PI*32}
+                strokeDashoffset={2*Math.PI*32*(1-Math.min(streak/Math.max(longestStreak,1),1))}
+                strokeLinecap="round" style={{ transition:"stroke-dashoffset 0.8s ease" }}/>
+            </svg>
+            <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <Icon name="fire" size={28} color={streak>0?T.orange:T.muted}/>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Calendar */}
+      <Card style={{ marginBottom:16 }}>
+        {/* Month nav */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
+          <motion.button whileTap={{scale:0.88}} onClick={prevMonth} style={{
+            background:T.cardHi, border:`1px solid ${T.border}`, borderRadius:8,
+            padding:"6px 12px", cursor:"pointer", color:T.text, fontSize:13 }}>
+            <Icon name="back" size={14} color={T.muted}/>
+          </motion.button>
+          <div style={{ fontWeight:800, fontSize:15 }}>
+            {monthNames[month.month]} {month.year}
+          </div>
+          <motion.button whileTap={{scale:0.88}} onClick={nextMonth} style={{
+            background:T.cardHi, border:`1px solid ${T.border}`, borderRadius:8,
+            padding:"6px 12px", cursor:"pointer", color:T.text, fontSize:13,
+            opacity: isCurrentMonth ? 0.3 : 1 }}>
+            <Icon name="back" size={14} color={T.muted} style={{ transform:"rotate(180deg)" }}/>
+          </motion.button>
+        </div>
+
+        {/* Day labels */}
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:4, marginBottom:6 }}>
+          {dayLabels.map((l,i) => (
+            <div key={i} style={{ textAlign:"center", fontSize:10, fontWeight:700,
+              color: i===6 ? T.muted : T.muted, letterSpacing:"0.04em" }}>{l}</div>
+          ))}
+        </div>
+
+        {/* Calendar grid */}
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:4 }}>
+          {cells.map((d, i) => {
+            if (!d) return <div key={i}/>;
+            const iso  = toISO(month.year, month.month, d);
+            const dc   = dayColor(iso);
+            const isToday = iso === todayISO2;
+            return (
+              <motion.div key={i} whileHover={{ scale:1.1 }}
+                title={dc==="trained"?"Trained":dc==="skipped"?"Skipped":dc==="rest"?"Rest day":""}
+                style={{
+                  aspect:"1/1", borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center",
+                  background: bgMap[dc],
+                  border: isToday ? `2px solid ${T.blue}` : `1px solid ${colorMap[dc]}`,
+                  cursor:"default", minHeight:32,
+                }}>
+                <span style={{ fontSize:11, fontWeight: isToday?800:dc==="trained"?700:400,
+                  color: dc==="trained"?T.blue:dc==="skipped"?T.danger:dc==="rest"?T.muted:T.muted }}>
+                  {d}
+                </span>
+                {dc==="trained" && (
+                  <div style={{ position:"absolute", bottom:2, width:4, height:4, borderRadius:"50%", background:T.blue }}/>
+                )}
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* Legend */}
+        <div style={{ display:"flex", gap:12, marginTop:12, flexWrap:"wrap" }}>
+          {[
+            { color:T.blue,   bg:`${T.blue}22`,   label:"Trained" },
+            { color:T.danger, bg:`${T.danger}11`,  label:"Skipped" },
+            { color:T.border, bg:T.cardHi,          label:"Rest day (Sun)" },
+          ].map(l => (
+            <div key={l.label} style={{ display:"flex", alignItems:"center", gap:5 }}>
+              <div style={{ width:10, height:10, borderRadius:3, background:l.bg, border:`1px solid ${l.color}` }}/>
+              <span style={{ fontSize:10, color:T.muted }}>{l.label}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* Month Stats */}
+      <div style={{ fontSize:11, fontWeight:700, color:T.muted, letterSpacing:"0.08em", marginBottom:10 }}>
+        {monthNames[month.month].toUpperCase()} STATS
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:12 }}>
+        {[
+          { label:"Days Trained",      value:trainedThisMonth, unit:"days",  color:T.blue,   icon:"dumbbell" },
+          { label:"Skipped Days",      value:skippedDays,      unit:"days",  color:T.danger, icon:"close"    },
+          { label:"Gym Attendance",    value:`${trainedThisMonth}/${expectedDays}`, unit:"expected", color:T.green,  icon:"calendar" },
+          { label:"Consistency Score", value:`${consistency}%`, unit:"",     color:consistency>=80?T.green:consistency>=50?T.yellow:T.danger, icon:"trend" },
+        ].map(stat => (
+          <Card key={stat.label} style={{ padding:"14px 14px" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
+              <div style={{ width:28, height:28, borderRadius:8, background:`${stat.color}22`,
+                display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                <Icon name={stat.icon} size={13} color={stat.color}/>
+              </div>
+              <span style={{ fontSize:10, color:T.muted, fontWeight:600, letterSpacing:"0.04em" }}>
+                {stat.label.toUpperCase()}
+              </span>
+            </div>
+            <div style={{ fontSize:26, fontWeight:900, color:stat.color, letterSpacing:"-0.5px" }}>
+              {stat.value}
+            </div>
+            {stat.unit && <div style={{ fontSize:10, color:T.muted, marginTop:2 }}>{stat.unit}</div>}
+            {/* Mini progress bar for consistency */}
+            {stat.label==="Consistency Score" && (
+              <div style={{ marginTop:8, height:4, borderRadius:4, background:T.border, overflow:"hidden" }}>
+                <motion.div animate={{ width:`${consistency}%` }}
+                  transition={{ duration:0.8, ease:"easeOut" }}
+                  style={{ height:"100%", borderRadius:4, background:stat.color }}/>
+              </div>
+            )}
+            {stat.label==="Gym Attendance" && (
+              <div style={{ marginTop:8, height:4, borderRadius:4, background:T.border, overflow:"hidden" }}>
+                <motion.div animate={{ width:`${expectedDays>0?(trainedThisMonth/expectedDays)*100:0}%` }}
+                  transition={{ duration:0.8, ease:"easeOut" }}
+                  style={{ height:"100%", borderRadius:4, background:T.green }}/>
+              </div>
+            )}
+          </Card>
+        ))}
+      </div>
+
+      {/* All-time stats */}
+      <div style={{ fontSize:11, fontWeight:700, color:T.muted, letterSpacing:"0.08em", marginBottom:10 }}>
+        ALL TIME
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
+        {[
+          { label:"Total Sessions", value:allSessions.length,   color:T.blue   },
+          { label:"Best Streak",    value:`${longestStreak}d`,  color:T.yellow },
+          { label:"Active Months",  value:new Set(allSessions.map(s=>s.date.slice(0,7))).size, color:T.green },
+        ].map(stat => (
+          <Card key={stat.label} style={{ padding:"12px 10px", textAlign:"center" }}>
+            <div style={{ fontSize:22, fontWeight:800, color:stat.color }}>{stat.value}</div>
+            <div style={{ fontSize:9, color:T.muted, marginTop:3, letterSpacing:"0.06em" }}>
+              {stat.label.toUpperCase()}
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── PRs View ─────────────────────────────────────────────────────────────────
 function PRsView({ currentUser }) {
   const prs     = S.get(`wt_prs_${currentUser.id}`,{});
@@ -1843,15 +2130,16 @@ function LogProgressView({ currentUser, editingSession, onEditDone }) {
 export default function App() {
   useEffect(()=>{ initStorage(); },[]);
 
-  const [currentUser,  setCurrentUser]      = useState(()=>S.get("wt_session",null));
-  const [tab,          setTab]              = useState("train");
+  const [currentUser, setCurrentUser] = useState(()=>S.get("wt_session",null));
+  const [tab,         setTab]         = useState("train");
   const [editingSession, setEditingSession] = useState(null);
 
   function handleLogin(user)  { setCurrentUser(user); S.set("wt_session",user); }
-  function handleLogout()     { setCurrentUser(null);  S.set("wt_session",null); setEditingSession(null); }
+  function handleLogout()     { setCurrentUser(null); S.set("wt_session",null); setEditingSession(null); }
   function handleEditSession(session) { setEditingSession(session); setTab("train"); }
   function handleEditDone()   { setEditingSession(null); }
 
+  // Show login screen if no session saved
   if (!currentUser) return (<><style>{mkCSS(false)}</style><LoginScreen onLogin={handleLogin}/></>);
 
   const today     = todayName();
@@ -1861,6 +2149,7 @@ export default function App() {
 
   const tabs = [
     { id:"train",    label:"Train",    icon:"log"      },
+    { id:"streak",   label:"Streak",   icon:"fire"     },
     { id:"history",  label:"History",  icon:"history"  },
     { id:"prs",      label:"PRs",      icon:"trophy"   },
     { id:"wellness", label:"Wellness", icon:"wellness" },
@@ -1891,7 +2180,7 @@ export default function App() {
                 )}
               </div>
             </div>
-            <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
               <div style={{display:"flex",alignItems:"center",gap:6}}>
                 <div style={{width:28,height:28,borderRadius:8,
                   background:currentUser.role==="admin"?`${T.yellow}22`:`${T.blue}22`,
@@ -1901,7 +2190,8 @@ export default function App() {
                 </div>
                 <span style={{fontSize:12,fontWeight:600,color:T.text}}>{currentUser.username}</span>
               </div>
-              <motion.button whileTap={{scale:0.9}} onClick={handleLogout} style={{background:"none",border:"none",cursor:"pointer",padding:4}}>
+              <motion.button whileTap={{scale:0.9}} onClick={handleLogout}
+                style={{background:"none",border:"none",cursor:"pointer",padding:4}}>
                 <Icon name="logout" size={16} color={T.muted}/>
               </motion.button>
             </div>
@@ -1913,6 +2203,7 @@ export default function App() {
           <AnimatePresence mode="wait">
             <motion.div key={tab} initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}} transition={{duration:0.15}}>
               {tab==="train"    && <LogProgressView currentUser={currentUser} editingSession={editingSession} onEditDone={handleEditDone}/>}
+              {tab==="streak"   && <StreakView      currentUser={currentUser}/>}
               {tab==="history"  && <HistoryView     currentUser={currentUser} onEditSession={handleEditSession}/>}
               {tab==="prs"      && <PRsView         currentUser={currentUser}/>}
               {tab==="wellness" && <WellnessView    currentUser={currentUser}/>}
