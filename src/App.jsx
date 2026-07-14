@@ -320,60 +320,69 @@ function RestTimer({ onClose }) {
   function start(d) { setDuration(d); setRemaining(d); setRunning(true); }
   function reset()  { clearInterval(intervalRef.current); setRunning(false); setRemaining(null); }
 
-  const pct    = remaining !== null ? remaining / duration : 1;
-  const r      = 44, circ = 2 * Math.PI * r;
-  const disp   = remaining ?? duration;
-  const mins   = Math.floor(disp/60), secs = disp%60;
+  const pct  = remaining !== null ? remaining / duration : 1;
+  const r    = 36, circ = 2 * Math.PI * r;
+  const disp = remaining ?? duration;
+  const mins = Math.floor(disp/60), secs = disp%60;
 
   return (
-    <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} exit={{opacity:0,y:20}}
-      style={{ position:"fixed", bottom:90, left:"50%", transform:"translateX(-50%)", width:"calc(100% - 32px)", maxWidth:448,
-        background:T.card, border:`1px solid ${T.border}`, borderRadius:20, padding:20, zIndex:50,
-        boxShadow:`0 0 40px #000a` }}>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-          <Icon name="timer" size={16} color={T.blue} />
-          <span style={{ fontWeight:700, fontSize:14 }}>Rest Timer</span>
+    <motion.div initial={{opacity:0,height:0}} animate={{opacity:1,height:"auto"}} exit={{opacity:0,height:0}}
+      style={{ overflow:"hidden", marginBottom:12 }}>
+      <Card style={{ padding:"14px 16px" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <Icon name="timer" size={15} color={T.blue}/>
+            <span style={{ fontWeight:700, fontSize:13 }}>Rest Timer</span>
+          </div>
+          <motion.button whileTap={{scale:0.9}} onClick={onClose}
+            style={{ background:"none", border:"none", cursor:"pointer", padding:2 }}>
+            <Icon name="close" size={15} color={T.muted}/>
+          </motion.button>
         </div>
-        <motion.button whileTap={{scale:0.9}} onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer" }}>
-          <Icon name="close" size={16} color={T.muted} />
-        </motion.button>
-      </div>
 
-      {/* SVG ring */}
-      <div style={{ display:"flex", justifyContent:"center", marginBottom:16 }}>
-        <svg width={100} height={100} style={{ transform:"rotate(-90deg)" }}>
-          <circle cx={50} cy={50} r={r} fill="none" stroke={T.border} strokeWidth={6}/>
-          <circle cx={50} cy={50} r={r} fill="none" stroke={running ? T.blue : T.muted} strokeWidth={6}
-            strokeDasharray={circ} strokeDashoffset={circ*(1-pct)} strokeLinecap="round"
-            style={{ transition:"stroke-dashoffset 1s linear" }}/>
-        </svg>
-        <div style={{ position:"absolute", marginTop:28, textAlign:"center" }}>
-          <div style={{ fontSize:22, fontWeight:800, color: remaining===0 ? T.green : T.text }}>
-            {remaining===0 ? "Done!" : `${mins}:${String(secs).padStart(2,"0")}`}
+        <div style={{ display:"flex", alignItems:"center", gap:16 }}>
+          {/* SVG ring — compact */}
+          <div style={{ position:"relative", flexShrink:0 }}>
+            <svg width={84} height={84} style={{ transform:"rotate(-90deg)" }}>
+              <circle cx={42} cy={42} r={r} fill="none" stroke={T.border} strokeWidth={5}/>
+              <circle cx={42} cy={42} r={r} fill="none"
+                stroke={remaining===0 ? T.green : running ? T.blue : T.muted}
+                strokeWidth={5} strokeDasharray={circ} strokeDashoffset={circ*(1-pct)}
+                strokeLinecap="round" style={{ transition:"stroke-dashoffset 1s linear" }}/>
+            </svg>
+            <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <span style={{ fontSize:18, fontWeight:800,
+                color: remaining===0 ? T.green : T.text }}>
+                {remaining===0 ? "✓" : `${mins}:${String(secs).padStart(2,"0")}`}
+              </span>
+            </div>
+          </div>
+
+          {/* Right side — presets + controls */}
+          <div style={{ flex:1 }}>
+            <div style={{ display:"flex", gap:5, marginBottom:10, flexWrap:"wrap" }}>
+              {PRESETS.map(p => (
+                <motion.button key={p} onClick={() => start(p)} whileTap={{scale:0.93}} style={{
+                  background: duration===p && running ? T.blue : T.cardHi,
+                  color: duration===p && running ? "#fff" : T.muted,
+                  border:`1px solid ${T.border}`, borderRadius:8,
+                  padding:"5px 10px", fontSize:11, fontWeight:600, cursor:"pointer"
+                }}>{p<60?`${p}s`:`${p/60}m`}</motion.button>
+              ))}
+            </div>
+            <div style={{ display:"flex", gap:8 }}>
+              {!running
+                ? <GlowBtn full color={T.blue} small onClick={() => start(duration)}>
+                    <Icon name="play" size={13} color="#fff"/> {remaining===0?"Restart":"Start"}
+                  </GlowBtn>
+                : <GlowBtn full color={T.danger} small onClick={reset}>
+                    <Icon name="close" size={13} color="#fff"/> Stop
+                  </GlowBtn>
+              }
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Presets */}
-      <div style={{ display:"flex", gap:6, justifyContent:"center", marginBottom:12 }}>
-        {PRESETS.map(p => (
-          <motion.button key={p} onClick={() => start(p)} whileTap={{scale:0.93}} style={{
-            background: duration===p && running ? T.blue : T.cardHi,
-            color: duration===p && running ? "#fff" : T.muted,
-            border:`1px solid ${T.border}`, borderRadius:8, padding:"6px 12px", fontSize:12, fontWeight:600, cursor:"pointer"
-          }}>{p<60?`${p}s`:`${p/60}m`}</motion.button>
-        ))}
-      </div>
-
-      <div style={{ display:"flex", gap:8 }}>
-        {!running && <GlowBtn full color={T.blue} small onClick={() => start(duration)}>
-          <Icon name="timer" size={14} color="#fff"/> {remaining===0?"Restart":"Start"}
-        </GlowBtn>}
-        {running && <GlowBtn full color={T.danger} small onClick={reset}>
-          <Icon name="close" size={14} color="#fff"/> Stop
-        </GlowBtn>}
-      </div>
+      </Card>
     </motion.div>
   );
 }
@@ -618,191 +627,124 @@ function LoginScreen({ onLogin }) {
   );
 }
 
-// ─── Admin Panel ──────────────────────────────────────────────────────────────
+// ─── User Detail View (Admin) ─────────────────────────────────────────────────
 function UserDetailView({ user, onBack }) {
   const sessions  = S.get("wt_sessions",[]).filter(s=>s.userId===user.id);
   const prs       = S.get(`wt_prs_${user.id}`,{});
   const sleepLog  = S.get(`wt_sleep_${user.id}`,[]);
-  const proteinLog= S.get(`wt_protein_${user.id}`,[]);
+  const protein   = S.get(`wt_protein_${user.id}`,[]);
   const bwLog     = S.get(`wt_bw_${user.id}`,[]);
   const streak    = calcStreak(sessions);
-  const totalVol  = sessions.reduce((t,s)=>t+s.exercises.reduce((tt,e)=>tt+totalVol(e.sets),0),0);
-  const prCount   = Object.keys(prs).length;
+
+  const totalVols = sessions.reduce((t,s)=>t+s.exercises.reduce((tt,e)=>tt+totalVol(e.sets),0),0);
   const avgSleep  = sleepLog.length ? Math.round(sleepLog.reduce((t,e)=>t+e.durationMins,0)/sleepLog.length) : 0;
-
-  function fmtDur(m) { return `${Math.floor(m/60)}h ${m%60}m`; }
-
-  const qualityColors = ["",T.danger,"#FF9500",T.yellow,T.green,"#00E5FF"];
-  const qualityLabels = ["","Poor","Fair","Good","Great","Perfect"];
+  const prCount   = Object.keys(prs).length;
 
   return (
     <div>
       {/* Back button */}
-      <motion.button whileTap={{scale:0.93}} onClick={onBack} style={{
-        background:T.cardHi, border:`1px solid ${T.border}`, borderRadius:10,
-        padding:"8px 14px", cursor:"pointer", display:"flex", alignItems:"center",
-        gap:8, color:T.muted, fontSize:13, marginBottom:20 }}>
-        <Icon name="back" size={14} color={T.muted}/> Back to users
+      <motion.button whileTap={{scale:0.95}} onClick={onBack} style={{
+        display:"flex", alignItems:"center", gap:8, background:"none", border:"none",
+        cursor:"pointer", color:T.blue, fontSize:13, fontWeight:600, marginBottom:20, padding:0 }}>
+        <Icon name="back" size={16} color={T.blue}/> Back to users
       </motion.button>
 
       {/* User header */}
-      <Card style={{ marginBottom:16, padding:"18px 18px",
+      <Card style={{ marginBottom:16, padding:"16px 18px",
         background:`linear-gradient(135deg,${T.blueDim},${T.card})`,
         border:`1px solid ${T.blue}44` }}>
-        <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-          <div style={{ width:52, height:52, borderRadius:16,
+        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <div style={{ width:48, height:48, borderRadius:14,
             background:user.role==="admin"?`${T.yellow}22`:`${T.blue}22`,
-            display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-            <Icon name={user.role==="admin"?"crown":"user"} size={24}
+            display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <Icon name={user.role==="admin"?"crown":"user"} size={22}
               color={user.role==="admin"?T.yellow:T.blue}/>
           </div>
           <div>
-            <div style={{ fontSize:20, fontWeight:800 }}>{user.username}</div>
-            <div style={{ display:"flex", gap:8, marginTop:4 }}>
-              <Tag label={user.role.toUpperCase()} color={user.role==="admin"?T.yellow:T.blue}/>
-              <span style={{ fontSize:11, color:T.muted }}>
-                Joined {fmtDate(user.createdAt||new Date().toISOString())}
-              </span>
+            <div style={{ fontSize:18, fontWeight:800 }}>{user.username}</div>
+            <div style={{ fontSize:11, color:T.muted, marginTop:2 }}>
+              {user.role} · Joined {fmtDate(user.createdAt)}
             </div>
           </div>
         </div>
       </Card>
 
-      {/* KPI grid */}
+      {/* Stats grid */}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:16 }}>
         {[
-          { label:"Sessions",   value:sessions.length,              color:T.blue   },
-          { label:"Streak",     value:`${streak}d`,                 color:T.orange },
-          { label:"PRs",        value:prCount,                      color:T.yellow },
-          { label:"Volume",     value:`${(totalVol/1000).toFixed(1)}t`, color:T.green },
-          { label:"Avg Sleep",  value:avgSleep?fmtDur(avgSleep):"—", color:T.blue  },
-          { label:"Protein Days",value:new Set(proteinLog.map(m=>m.date)).size, color:T.green },
+          { label:"Sessions",  value:sessions.length, color:T.blue   },
+          { label:"Streak",    value:`${streak}d`,    color:T.orange },
+          { label:"PRs",       value:prCount,         color:T.yellow },
+          { label:"Volume",    value:`${(totalVols/1000).toFixed(1)}t`, color:T.green },
+          { label:"Avg Sleep", value:avgSleep?`${Math.floor(avgSleep/60)}h${avgSleep%60}m`:"—", color:T.blue },
+          { label:"Protein logs", value:protein.length, color:T.green },
         ].map(k=>(
           <Card key={k.label} style={{ padding:"10px 8px", textAlign:"center" }}>
             <div style={{ fontSize:16, fontWeight:800, color:k.color }}>{k.value}</div>
-            <div style={{ fontSize:9, color:T.muted, marginTop:3, letterSpacing:"0.06em" }}>{k.label.toUpperCase()}</div>
+            <div style={{ fontSize:9, color:T.muted, marginTop:2, letterSpacing:"0.06em" }}>{k.label.toUpperCase()}</div>
           </Card>
         ))}
       </div>
 
       {/* Recent sessions */}
-      {sessions.length > 0 && (
-        <div style={{ marginBottom:16 }}>
-          <div style={{ fontSize:11, fontWeight:700, color:T.muted, letterSpacing:"0.08em", marginBottom:10 }}>
-            RECENT SESSIONS
-          </div>
-          {sessions.slice().sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5).map((s,i)=>{
-            const m=SCHEDULE[s.day];
-            return (
-              <Card key={s.id} style={{ padding:"12px 14px", marginBottom:8 }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
-                  <div>
-                    <span style={{ fontWeight:700, fontSize:13, color:m?.color }}>{m?.label}</span>
-                    <span style={{ fontSize:11, color:T.muted }}> · {s.day}</span>
-                  </div>
-                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                    <span style={{ fontSize:11, color:T.yellow, fontWeight:700 }}>
-                      {Math.round(s.exercises.reduce((t,e)=>t+totalVol(e.sets),0))}kg
-                    </span>
-                    <span style={{ fontSize:11, color:T.muted }}>{fmtDate(s.date)}</span>
-                  </div>
-                </div>
-                <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
-                  {s.exercises.map(e=>(
-                    <span key={e.name} style={{ fontSize:10, color:T.muted,
-                      background:T.cardHi, border:`1px solid ${T.border}`,
-                      borderRadius:20, padding:"2px 8px" }}>{e.name}</span>
-                  ))}
-                </div>
-                {s.notes && <div style={{ fontSize:11, color:T.purple, marginTop:6, fontStyle:"italic" }}>"{s.notes}"</div>}
-              </Card>
-            );
-          })}
-        </div>
-      )}
+      <div style={{ fontSize:11, fontWeight:700, color:T.muted, letterSpacing:"0.08em", marginBottom:10 }}>
+        RECENT SESSIONS ({sessions.length})
+      </div>
+      {sessions.length===0 && <div style={{ color:T.muted, fontSize:13, marginBottom:16 }}>No sessions yet</div>}
+      {sessions.slice().sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,10).map((s,i)=>{
+        const m=SCHEDULE[s.day];
+        return (
+          <Card key={s.id} style={{ marginBottom:8, padding:"12px 14px" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <div>
+                <span style={{ fontWeight:700, fontSize:13, color:m?.color }}>{m?.label}</span>
+                <span style={{ fontSize:11, color:T.muted }}> · {fmtDate(s.date)}</span>
+              </div>
+              <span style={{ fontSize:11, fontWeight:700, color:T.yellow }}>
+                {Math.round(s.exercises.reduce((t,e)=>t+totalVol(e.sets),0))}kg
+              </span>
+            </div>
+            {s.exercises.map(ex=>(
+              <div key={ex.name} style={{ fontSize:11, color:T.muted, marginTop:4 }}>
+                {ex.name}: {ex.sets.map(st=>`${st.weight}kg×${st.reps}`).join(" · ")}
+              </div>
+            ))}
+          </Card>
+        );
+      })}
 
       {/* PRs */}
-      {prCount > 0 && (
-        <div style={{ marginBottom:16 }}>
-          <div style={{ fontSize:11, fontWeight:700, color:T.muted, letterSpacing:"0.08em", marginBottom:10 }}>
-            PERSONAL RECORDS ({prCount})
-          </div>
-          {Object.entries(prs).slice(0,5).map(([name,pr])=>(
-            <Card key={name} style={{ padding:"10px 14px", marginBottom:8 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                <span style={{ fontSize:13, fontWeight:600 }}>{name}</span>
-                <div style={{ display:"flex", gap:12 }}>
-                  <div style={{ textAlign:"right" }}>
-                    <div style={{ fontSize:14, fontWeight:800, color:T.yellow }}>{pr.maxWeight}kg</div>
-                    <div style={{ fontSize:9, color:T.muted }}>MAX WEIGHT</div>
-                  </div>
-                  <div style={{ textAlign:"right" }}>
-                    <div style={{ fontSize:14, fontWeight:800, color:T.blue }}>{pr.maxVolume}kg</div>
-                    <div style={{ fontSize:9, color:T.muted }}>MAX VOL</div>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ))}
+      {prCount>0 && <>
+        <div style={{ fontSize:11, fontWeight:700, color:T.muted, letterSpacing:"0.08em", margin:"16px 0 10px" }}>
+          PERSONAL RECORDS ({prCount})
         </div>
-      )}
-
-      {/* Sleep summary */}
-      {sleepLog.length > 0 && (
-        <div style={{ marginBottom:16 }}>
-          <div style={{ fontSize:11, fontWeight:700, color:T.muted, letterSpacing:"0.08em", marginBottom:10 }}>
-            SLEEP RECORDS ({sleepLog.length})
-          </div>
-          {sleepLog.slice(0,4).map((entry,i)=>(
-            <Card key={entry.id} style={{ padding:"10px 14px", marginBottom:8 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                  <Icon name="moon2" size={14} color={qualityColors[entry.quality]}/>
-                  <div>
-                    <span style={{ fontSize:14, fontWeight:700 }}>{fmtDur(entry.durationMins)}</span>
-                    <span style={{ fontSize:10, color:qualityColors[entry.quality], marginLeft:6, fontWeight:600 }}>
-                      {qualityLabels[entry.quality]}
-                    </span>
-                  </div>
-                </div>
-                <span style={{ fontSize:11, color:T.muted }}>{fmtDate(entry.date)}</span>
-              </div>
-              {entry.note && <div style={{ fontSize:11, color:T.purple, marginTop:4, fontStyle:"italic" }}>"{entry.note}"</div>}
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Bodyweight */}
-      {bwLog.length > 0 && (
-        <div>
-          <div style={{ fontSize:11, fontWeight:700, color:T.muted, letterSpacing:"0.08em", marginBottom:10 }}>
-            BODYWEIGHT LOG
-          </div>
-          <Card style={{ padding:"12px 14px" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-              <span style={{ fontSize:13, color:T.muted }}>Latest</span>
-              <span style={{ fontSize:20, fontWeight:800, color:T.green }}>{bwLog[bwLog.length-1]?.weight}kg</span>
-            </div>
-            <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-              {bwLog.slice(-6).map((e,i)=>(
-                <div key={i} style={{ background:T.cardHi, border:`1px solid ${T.border}`,
-                  borderRadius:8, padding:"4px 10px", textAlign:"center" }}>
-                  <div style={{ fontSize:12, fontWeight:700, color:T.green }}>{e.weight}kg</div>
-                  <div style={{ fontSize:9, color:T.muted }}>{fmtShort(e.date)}</div>
-                </div>
-              ))}
+        {Object.entries(prs).slice(0,8).map(([name,pr])=>(
+          <Card key={name} style={{ marginBottom:8, padding:"10px 14px" }}>
+            <div style={{ fontSize:12, fontWeight:600, marginBottom:4 }}>{name}</div>
+            <div style={{ display:"flex", gap:16 }}>
+              <span style={{ fontSize:13, fontWeight:800, color:T.yellow }}>{pr.maxWeight}kg</span>
+              <span style={{ fontSize:11, color:T.muted }}>Vol: {pr.maxVolume}kg</span>
             </div>
           </Card>
-        </div>
-      )}
+        ))}
+      </>}
 
-      {sessions.length===0 && prCount===0 && sleepLog.length===0 && (
-        <Card style={{ textAlign:"center", padding:"32px 16px" }}>
-          <Icon name="user" size={36} color={T.border} style={{ display:"block", margin:"0 auto 10px" }}/>
-          <div style={{ color:T.muted, fontSize:13 }}>No data logged yet for {user.username}</div>
-        </Card>
-      )}
+      {/* Sleep summary */}
+      {sleepLog.length>0 && <>
+        <div style={{ fontSize:11, fontWeight:700, color:T.muted, letterSpacing:"0.08em", margin:"16px 0 10px" }}>
+          SLEEP LOG ({sleepLog.length} entries)
+        </div>
+        {sleepLog.slice(0,5).map((e,i)=>(
+          <Card key={e.id} style={{ marginBottom:8, padding:"10px 14px" }}>
+            <div style={{ display:"flex", justifyContent:"space-between" }}>
+              <span style={{ fontSize:12, fontWeight:600 }}>
+                {Math.floor(e.durationMins/60)}h {e.durationMins%60}m
+              </span>
+              <span style={{ fontSize:11, color:T.muted }}>{fmtDate(e.date)}</span>
+            </div>
+          </Card>
+        ))}
+      </>}
     </div>
   );
 }
@@ -851,10 +793,7 @@ function AdminPanel({ currentUser }) {
           <motion.div key={u.id} whileTap={{scale:0.98}}
             onClick={()=>setViewingUser(u)}
             style={{ cursor:"pointer" }}>
-            <Card style={{ padding:"12px 16px", border:`1px solid ${T.border}`,
-              transition:"border-color 0.2s" }}
-              onMouseEnter={e=>e.currentTarget.style.borderColor=T.blue}
-              onMouseLeave={e=>e.currentTarget.style.borderColor=T.border}>
+            <Card style={{ padding:"12px 16px" }}>
               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
                 <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                   <div style={{ width:36, height:36, borderRadius:10,
@@ -870,8 +809,7 @@ function AdminPanel({ currentUser }) {
                 </div>
                 <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                   <Tag label={u.role.toUpperCase()} color={u.role==="admin"?T.yellow:T.blue}/>
-                  <Icon name="back" size={13} color={T.muted}
-                    style={{ transform:"rotate(180deg)" }}/>
+                  <Icon name="back" size={13} color={T.muted} style={{ transform:"rotate(180deg)" }}/>
                   {u.id!==currentUser.id && (
                     <motion.button whileTap={{scale:0.9}}
                       onClick={e=>{e.stopPropagation(); deleteUser(u.id);}}
@@ -1829,6 +1767,163 @@ function PRsView({ currentUser }) {
   );
 }
 
+// ─── Editable Sleep Record ────────────────────────────────────────────────────
+function SleepRecord({ entry, idx, onEdit, onDelete, qualityLabels, qualityColors, fmtDuration }) {
+  const [editing, setEditing] = useState(false);
+  const [h, setH]   = useState(String(Math.floor(entry.durationMins/60)));
+  const [m, setM]   = useState(String(entry.durationMins%60));
+  const [q, setQ]   = useState(entry.quality);
+  const [n, setN]   = useState(entry.note||"");
+
+  function save() {
+    const mins = (parseInt(h)||0)*60+(parseInt(m)||0);
+    if (!mins) return;
+    onEdit(entry.id, mins, q, n);
+    setEditing(false);
+  }
+
+  return (
+    <motion.div initial={{opacity:0}} animate={{opacity:1}}
+      style={{ paddingTop:idx>0?12:0, marginTop:idx>0?12:0, borderTop:idx>0?`1px solid ${T.border}`:"none" }}>
+      {editing ? (
+        <div style={{ background:T.cardHi, borderRadius:10, padding:12 }}>
+          <div style={{ display:"flex", gap:8, marginBottom:10 }}>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:10, color:T.muted, marginBottom:4 }}>HOURS</div>
+              <input type="number" value={h} onChange={e=>setH(e.target.value)}
+                style={{ width:"100%", background:T.card, border:`1px solid ${T.border}`,
+                  borderRadius:8, color:T.text, padding:"7px 10px", fontSize:13, outline:"none" }}/>
+            </div>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:10, color:T.muted, marginBottom:4 }}>MINS</div>
+              <input type="number" value={m} onChange={e=>setM(e.target.value)}
+                style={{ width:"100%", background:T.card, border:`1px solid ${T.border}`,
+                  borderRadius:8, color:T.text, padding:"7px 10px", fontSize:13, outline:"none" }}/>
+            </div>
+          </div>
+          <div style={{ display:"flex", gap:5, marginBottom:10 }}>
+            {[1,2,3,4,5].map(qv=>(
+              <motion.button key={qv} whileTap={{scale:0.88}} onClick={()=>setQ(qv)} style={{
+                flex:1, background:q===qv?qualityColors[qv]+"33":T.card,
+                border:`1px solid ${q===qv?qualityColors[qv]:T.border}`,
+                borderRadius:6, padding:"5px 0", cursor:"pointer",
+                color:q===qv?qualityColors[qv]:T.muted, fontSize:9, fontWeight:700 }}>
+                {qualityLabels[qv]}
+              </motion.button>
+            ))}
+          </div>
+          <textarea value={n} onChange={e=>setN(e.target.value)} placeholder="Notes..."
+            style={{ width:"100%", background:T.card, border:`1px solid ${T.border}`,
+              borderRadius:8, color:T.text, padding:"8px 10px", fontSize:12,
+              outline:"none", resize:"none", minHeight:40, marginBottom:10 }}/>
+          <div style={{ display:"flex", gap:8 }}>
+            <GlowBtn full color={T.blue} small onClick={save}>
+              <Icon name="check" size={13} color="#fff"/> Save
+            </GlowBtn>
+            <GlowBtn color={T.border} small onClick={()=>setEditing(false)}>
+              <Icon name="close" size={13} color={T.muted}/>
+            </GlowBtn>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <div style={{ width:40, height:40, borderRadius:12, background:`${qualityColors[entry.quality]}22`,
+              display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+              <Icon name="moon2" size={18} color={qualityColors[entry.quality]}/>
+            </div>
+            <div>
+              <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:2 }}>
+                <span style={{ fontSize:16, fontWeight:800 }}>{fmtDuration(entry.durationMins)}</span>
+                <span style={{ fontSize:10, fontWeight:700, color:qualityColors[entry.quality],
+                  background:qualityColors[entry.quality]+"22", padding:"2px 8px", borderRadius:20 }}>
+                  {qualityLabels[entry.quality]}
+                </span>
+              </div>
+              <div style={{ fontSize:11, color:T.muted }}>{fmtDate(entry.date)} · {entry.savedAt}</div>
+              {entry.note && <div style={{ fontSize:11, color:T.purple, marginTop:2, fontStyle:"italic" }}>"{entry.note}"</div>}
+            </div>
+          </div>
+          <div style={{ display:"flex", gap:6 }}>
+            <motion.button whileTap={{scale:0.88}} onClick={()=>setEditing(true)}
+              style={{ background:`${T.blue}18`, border:`1px solid ${T.blue}33`,
+                borderRadius:7, padding:"4px 8px", cursor:"pointer" }}>
+              <Icon name="edit" size={12} color={T.blue}/>
+            </motion.button>
+            <motion.button whileTap={{scale:0.88}} onClick={()=>onDelete(entry.id)}
+              style={{ background:"none", border:"none", cursor:"pointer", padding:4 }}>
+              <Icon name="trash" size={13} color={T.muted}/>
+            </motion.button>
+          </div>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+// ─── Editable Meal Record ─────────────────────────────────────────────────────
+function MealRecord({ meal, idx, onEdit, onDelete }) {
+  const [editing, setEditing] = useState(false);
+  const [desc,  setDesc]  = useState(meal.desc);
+  const [grams, setGrams] = useState(String(meal.grams));
+
+  function save() {
+    if (!grams) return;
+    onEdit(meal.id, desc, grams);
+    setEditing(false);
+  }
+
+  return (
+    <motion.div initial={{opacity:0,x:-8}} animate={{opacity:1,x:0}}
+      style={{ paddingTop:idx>0?10:0, marginTop:idx>0?10:0, borderTop:idx>0?`1px solid ${T.border}`:"none" }}>
+      {editing ? (
+        <div style={{ background:T.cardHi, borderRadius:10, padding:12 }}>
+          <input value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Meal description"
+            style={{ width:"100%", background:T.card, border:`1px solid ${T.border}`,
+              borderRadius:8, color:T.text, padding:"7px 10px", fontSize:13,
+              outline:"none", marginBottom:8 }}/>
+          <div style={{ display:"flex", gap:8 }}>
+            <input type="number" value={grams} onChange={e=>setGrams(e.target.value)} placeholder="Protein (g)"
+              style={{ flex:1, background:T.card, border:`1px solid ${T.border}`,
+                borderRadius:8, color:T.text, padding:"7px 10px", fontSize:13, outline:"none" }}/>
+            <GlowBtn color={T.green} small onClick={save}>
+              <Icon name="check" size={13} color="#fff"/>
+            </GlowBtn>
+            <GlowBtn color={T.border} small onClick={()=>setEditing(false)}>
+              <Icon name="close" size={13} color={T.muted}/>
+            </GlowBtn>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <div style={{ width:34, height:34, borderRadius:10, background:`${T.green}22`,
+              display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+              <Icon name="drop" size={14} color={T.green}/>
+            </div>
+            <div>
+              <div style={{ fontSize:13, fontWeight:600 }}>{meal.desc}</div>
+              <div style={{ fontSize:11, color:T.muted }}>{meal.time}</div>
+            </div>
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+            <span style={{ fontSize:16, fontWeight:800, color:T.green }}>{meal.grams}g</span>
+            <motion.button whileTap={{scale:0.88}} onClick={()=>setEditing(true)}
+              style={{ background:`${T.blue}18`, border:`1px solid ${T.blue}33`,
+                borderRadius:7, padding:"4px 8px", cursor:"pointer" }}>
+              <Icon name="edit" size={12} color={T.blue}/>
+            </motion.button>
+            <motion.button whileTap={{scale:0.88}} onClick={()=>onDelete(meal.id)}
+              style={{background:"none",border:"none",cursor:"pointer",padding:2}}>
+              <Icon name="trash" size={13} color={T.muted}/>
+            </motion.button>
+          </div>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 // ─── Wellness View ────────────────────────────────────────────────────────────
 function WellnessView({ currentUser }) {
   const uid = currentUser.id;
@@ -1905,6 +2000,14 @@ function WellnessView({ currentUser }) {
   }
   function deleteSleep(id) {
     const u=sleepLog.filter(e=>e.id!==id); S.set(`wt_sleep_${uid}`,u); setSleepLog(u);
+  }
+  function editSleep(id, durationMins, quality, note) {
+    const u=sleepLog.map(e=>e.id===id?{...e,durationMins,quality,note}:e);
+    S.set(`wt_sleep_${uid}`,u); setSleepLog(u);
+  }
+  function editMeal(id, desc, grams) {
+    const u=proteinLog.map(m=>m.id===id?{...m,desc,grams:parseFloat(grams)||0}:m);
+    S.set(`wt_protein_${uid}`,u); setProteinLog(u);
   }
 
   // filtered sleep records
@@ -2090,31 +2193,9 @@ function WellnessView({ currentUser }) {
               RECORDS · {filteredSleep.length} {sleepFilter==="Daily"?"today":sleepFilter==="Weekly"?"this week":"this month"}
             </div>
             {filteredSleep.map((entry,i)=>(
-              <motion.div key={entry.id} initial={{opacity:0}} animate={{opacity:1}}
-                style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
-                  paddingTop:i>0?12:0, marginTop:i>0?12:0, borderTop:i>0?`1px solid ${T.border}`:"none" }}>
-                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                  <div style={{ width:40, height:40, borderRadius:12, background:`${qualityColors[entry.quality]}22`,
-                    display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                    <Icon name="moon2" size={18} color={qualityColors[entry.quality]}/>
-                  </div>
-                  <div>
-                    <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:2 }}>
-                      <span style={{ fontSize:16, fontWeight:800 }}>{fmtDuration(entry.durationMins)}</span>
-                      <span style={{ fontSize:10, fontWeight:700, color:qualityColors[entry.quality],
-                        background:qualityColors[entry.quality]+"22", padding:"2px 8px", borderRadius:20 }}>
-                        {qualityLabels[entry.quality]}
-                      </span>
-                    </div>
-                    <div style={{ fontSize:11, color:T.muted }}>{fmtDate(entry.date)} · {entry.savedAt}</div>
-                    {entry.note && <div style={{ fontSize:11, color:T.purple, marginTop:3, fontStyle:"italic" }}>"{entry.note}"</div>}
-                  </div>
-                </div>
-                <motion.button whileTap={{scale:0.88}} onClick={()=>deleteSleep(entry.id)}
-                  style={{ background:"none", border:"none", cursor:"pointer", padding:4 }}>
-                  <Icon name="trash" size={13} color={T.muted}/>
-                </motion.button>
-              </motion.div>
+              <SleepRecord key={entry.id} entry={entry} idx={i}
+                onEdit={editSleep} onDelete={deleteSleep}
+                qualityLabels={qualityLabels} qualityColors={qualityColors} fmtDuration={fmtDuration}/>
             ))}
           </Card>
         </>
@@ -2204,27 +2285,8 @@ function WellnessView({ currentUser }) {
           <div style={{ marginTop:14, paddingTop:14, borderTop:`1px solid ${T.border}` }}>
             <div style={{ fontSize:11, color:T.muted, fontWeight:700, letterSpacing:"0.06em", marginBottom:10 }}>TODAY'S MEALS</div>
             {todayProtein.map((meal,i)=>(
-              <motion.div key={meal.id} initial={{opacity:0,x:-8}} animate={{opacity:1,x:0}}
-                style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
-                  paddingTop:i>0?10:0, marginTop:i>0?10:0, borderTop:i>0?`1px solid ${T.border}`:"none" }}>
-                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                  <div style={{ width:34, height:34, borderRadius:10, background:`${T.green}22`,
-                    display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                    <Icon name="drop" size={14} color={T.green}/>
-                  </div>
-                  <div>
-                    <div style={{ fontSize:13, fontWeight:600 }}>{meal.desc}</div>
-                    <div style={{ fontSize:11, color:T.muted }}>{meal.time}</div>
-                  </div>
-                </div>
-                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                  <span style={{ fontSize:16, fontWeight:800, color:T.green }}>{meal.grams}g</span>
-                  <motion.button whileTap={{scale:0.88}} onClick={()=>deleteMeal(meal.id)}
-                    style={{background:"none",border:"none",cursor:"pointer",padding:2}}>
-                    <Icon name="trash" size={13} color={T.muted}/>
-                  </motion.button>
-                </div>
-              </motion.div>
+              <MealRecord key={meal.id} meal={meal} idx={i}
+                onEdit={editMeal} onDelete={deleteMeal}/>
             ))}
           </div>
         )}
