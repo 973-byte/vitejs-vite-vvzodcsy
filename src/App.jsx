@@ -551,6 +551,32 @@ function ExerciseCard({ exercise, sets, onChange, onAddSet, onRemoveSet, onDelet
   );
 }
 // ─── Login ────────────────────────────────────────────────────────────────────
+// ─── App Logo (custom icon) ───────────────────────────────────────────────────
+function AppLogo({ size = 60 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"
+      style={{ borderRadius: size * 0.22, boxShadow:`0 0 ${size*0.5}px #1560E855`, display:"block" }}>
+      <defs>
+        <linearGradient id="appbg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style={{stopColor:"#0D3A8A"}}/>
+          <stop offset="100%" style={{stopColor:"#1560E8"}}/>
+        </linearGradient>
+      </defs>
+      <rect width="512" height="512" rx="110" ry="110" fill="url(#appbg)"/>
+      <g fill="white" transform="translate(256,256) scale(0.7) translate(-256,-256)">
+        <path d="m476.69 340.78h11.31v42.12h-11.31z"/>
+        <path d="m24 340.78h11.31v42.12h-11.31z"/>
+        <path d="m64.96 310.85c-7.53 0-13.66 6.12-13.66 13.63v8.31 58.11 8.31c0 7.52 6.13 13.63 13.66 13.63h23.98v-101.99z"/>
+        <path d="m387.99 91.69c-31.06-29.93-78.3-19.1-126.35 28.96-1.5 1.5-3.53 2.35-5.65 2.35s-4.16-.85-5.66-2.35c-30.12-30.12-59.92-45.62-85.61-45.62-15.3 0-29.13 5.49-40.72 16.65-26.89 25.91-33.91 79.71-3.07 112.93l135.06 145.48 135.08-145.48c30.84-33.22 23.81-87.02-3.08-112.92zm-42.63 105.74h-34.29l-34.81 54.99c-1.47 2.32-4.02 3.72-6.75 3.72-.13 0-.27 0-.4-.01-2.88-.14-5.46-1.83-6.75-4.4l-32.7-65.18-16.16 25.51c-1.47 2.31-4.01 3.71-6.75 3.71h-40.11c-4.42 0-8-3.58-8-7.99 0-4.42 3.58-7.99 8-7.99h35.71l21.37-33.73c1.54-2.44 4.27-3.85 7.15-3.71s5.46 1.83 6.75 4.4l32.69 65.18 29.61-46.77c1.46-2.31 4.01-3.71 6.75-3.71h38.69c4.42 0 8 3.57 8 7.99 0 4.41-3.58 7.99-8 7.99z"/>
+        <path d="m460.7 323.77v76.14c0 7.13-5.81 12.93-12.95 12.93h-24.69v-101.99h24.69c7.14 0 12.95 5.8 12.95 12.92z"/>
+        <path d="m142.57 293.22c0-3.55-2.89-6.43-6.43-6.43h-24.77c-3.55 0-6.43 2.89-6.43 6.43v9.64 117.98 9.64c0 3.55 2.89 6.43 6.43 6.43h24.77c3.55 0 6.43-2.89 6.43-6.43v-39.58-58.11z"/>
+        <path d="m353.44 340.78v42.12h-194.88v-42.12h66.97l24.6 26.5c1.51 1.63 3.63 2.56 5.86 2.56 2.22 0 4.34-.93 5.85-2.56l24.61-26.5z"/>
+        <path d="m407.07 293.22v137.25c0 3.55-2.9 6.43-6.46 6.43h-24.75c-3.55 0-6.43-2.88-6.43-6.43v-137.25c0-3.55 2.88-6.44 6.43-6.44h24.75c3.56 0 6.46 2.89 6.46 6.44z"/>
+      </g>
+    </svg>
+  );
+}
+
 function LoginScreen({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -566,11 +592,8 @@ function LoginScreen({ onLogin }) {
     <div style={{ minHeight:"100dvh", display:"flex", alignItems:"center", justifyContent:"center", background:T.bg, padding:24 }}>
       <motion.div initial={{opacity:0,y:24}} animate={{opacity:1,y:0}} style={{ width:"100%", maxWidth:360 }}>
         <div style={{ textAlign:"center", marginBottom:32 }}>
-          <div style={{ width:60, height:60, borderRadius:18,
-            background:`linear-gradient(135deg,${T.blue},${T.yellow})`,
-            display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px",
-            boxShadow:`0 0 30px ${T.blue}55` }}>
-            <Icon name="dumbbell" size={28} color="#fff"/>
+          <div style={{ margin:"0 auto 16px", width:60, display:"flex", justifyContent:"center" }}>
+            <AppLogo size={60}/>
           </div>
           <div style={{ fontSize:28, fontWeight:800, letterSpacing:"-0.5px" }}>Over<span style={{color:T.yellow}}>load</span></div>
           <div style={{ color:T.muted, fontSize:13, marginTop:4 }}>Progressive training tracker</div>
@@ -596,10 +619,199 @@ function LoginScreen({ onLogin }) {
 }
 
 // ─── Admin Panel ──────────────────────────────────────────────────────────────
+function UserDetailView({ user, onBack }) {
+  const sessions  = S.get("wt_sessions",[]).filter(s=>s.userId===user.id);
+  const prs       = S.get(`wt_prs_${user.id}`,{});
+  const sleepLog  = S.get(`wt_sleep_${user.id}`,[]);
+  const proteinLog= S.get(`wt_protein_${user.id}`,[]);
+  const bwLog     = S.get(`wt_bw_${user.id}`,[]);
+  const streak    = calcStreak(sessions);
+  const totalVol  = sessions.reduce((t,s)=>t+s.exercises.reduce((tt,e)=>tt+totalVol(e.sets),0),0);
+  const prCount   = Object.keys(prs).length;
+  const avgSleep  = sleepLog.length ? Math.round(sleepLog.reduce((t,e)=>t+e.durationMins,0)/sleepLog.length) : 0;
+
+  function fmtDur(m) { return `${Math.floor(m/60)}h ${m%60}m`; }
+
+  const qualityColors = ["",T.danger,"#FF9500",T.yellow,T.green,"#00E5FF"];
+  const qualityLabels = ["","Poor","Fair","Good","Great","Perfect"];
+
+  return (
+    <div>
+      {/* Back button */}
+      <motion.button whileTap={{scale:0.93}} onClick={onBack} style={{
+        background:T.cardHi, border:`1px solid ${T.border}`, borderRadius:10,
+        padding:"8px 14px", cursor:"pointer", display:"flex", alignItems:"center",
+        gap:8, color:T.muted, fontSize:13, marginBottom:20 }}>
+        <Icon name="back" size={14} color={T.muted}/> Back to users
+      </motion.button>
+
+      {/* User header */}
+      <Card style={{ marginBottom:16, padding:"18px 18px",
+        background:`linear-gradient(135deg,${T.blueDim},${T.card})`,
+        border:`1px solid ${T.blue}44` }}>
+        <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+          <div style={{ width:52, height:52, borderRadius:16,
+            background:user.role==="admin"?`${T.yellow}22`:`${T.blue}22`,
+            display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+            <Icon name={user.role==="admin"?"crown":"user"} size={24}
+              color={user.role==="admin"?T.yellow:T.blue}/>
+          </div>
+          <div>
+            <div style={{ fontSize:20, fontWeight:800 }}>{user.username}</div>
+            <div style={{ display:"flex", gap:8, marginTop:4 }}>
+              <Tag label={user.role.toUpperCase()} color={user.role==="admin"?T.yellow:T.blue}/>
+              <span style={{ fontSize:11, color:T.muted }}>
+                Joined {fmtDate(user.createdAt||new Date().toISOString())}
+              </span>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* KPI grid */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:16 }}>
+        {[
+          { label:"Sessions",   value:sessions.length,              color:T.blue   },
+          { label:"Streak",     value:`${streak}d`,                 color:T.orange },
+          { label:"PRs",        value:prCount,                      color:T.yellow },
+          { label:"Volume",     value:`${(totalVol/1000).toFixed(1)}t`, color:T.green },
+          { label:"Avg Sleep",  value:avgSleep?fmtDur(avgSleep):"—", color:T.blue  },
+          { label:"Protein Days",value:new Set(proteinLog.map(m=>m.date)).size, color:T.green },
+        ].map(k=>(
+          <Card key={k.label} style={{ padding:"10px 8px", textAlign:"center" }}>
+            <div style={{ fontSize:16, fontWeight:800, color:k.color }}>{k.value}</div>
+            <div style={{ fontSize:9, color:T.muted, marginTop:3, letterSpacing:"0.06em" }}>{k.label.toUpperCase()}</div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Recent sessions */}
+      {sessions.length > 0 && (
+        <div style={{ marginBottom:16 }}>
+          <div style={{ fontSize:11, fontWeight:700, color:T.muted, letterSpacing:"0.08em", marginBottom:10 }}>
+            RECENT SESSIONS
+          </div>
+          {sessions.slice().sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5).map((s,i)=>{
+            const m=SCHEDULE[s.day];
+            return (
+              <Card key={s.id} style={{ padding:"12px 14px", marginBottom:8 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
+                  <div>
+                    <span style={{ fontWeight:700, fontSize:13, color:m?.color }}>{m?.label}</span>
+                    <span style={{ fontSize:11, color:T.muted }}> · {s.day}</span>
+                  </div>
+                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                    <span style={{ fontSize:11, color:T.yellow, fontWeight:700 }}>
+                      {Math.round(s.exercises.reduce((t,e)=>t+totalVol(e.sets),0))}kg
+                    </span>
+                    <span style={{ fontSize:11, color:T.muted }}>{fmtDate(s.date)}</span>
+                  </div>
+                </div>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
+                  {s.exercises.map(e=>(
+                    <span key={e.name} style={{ fontSize:10, color:T.muted,
+                      background:T.cardHi, border:`1px solid ${T.border}`,
+                      borderRadius:20, padding:"2px 8px" }}>{e.name}</span>
+                  ))}
+                </div>
+                {s.notes && <div style={{ fontSize:11, color:T.purple, marginTop:6, fontStyle:"italic" }}>"{s.notes}"</div>}
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* PRs */}
+      {prCount > 0 && (
+        <div style={{ marginBottom:16 }}>
+          <div style={{ fontSize:11, fontWeight:700, color:T.muted, letterSpacing:"0.08em", marginBottom:10 }}>
+            PERSONAL RECORDS ({prCount})
+          </div>
+          {Object.entries(prs).slice(0,5).map(([name,pr])=>(
+            <Card key={name} style={{ padding:"10px 14px", marginBottom:8 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <span style={{ fontSize:13, fontWeight:600 }}>{name}</span>
+                <div style={{ display:"flex", gap:12 }}>
+                  <div style={{ textAlign:"right" }}>
+                    <div style={{ fontSize:14, fontWeight:800, color:T.yellow }}>{pr.maxWeight}kg</div>
+                    <div style={{ fontSize:9, color:T.muted }}>MAX WEIGHT</div>
+                  </div>
+                  <div style={{ textAlign:"right" }}>
+                    <div style={{ fontSize:14, fontWeight:800, color:T.blue }}>{pr.maxVolume}kg</div>
+                    <div style={{ fontSize:9, color:T.muted }}>MAX VOL</div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Sleep summary */}
+      {sleepLog.length > 0 && (
+        <div style={{ marginBottom:16 }}>
+          <div style={{ fontSize:11, fontWeight:700, color:T.muted, letterSpacing:"0.08em", marginBottom:10 }}>
+            SLEEP RECORDS ({sleepLog.length})
+          </div>
+          {sleepLog.slice(0,4).map((entry,i)=>(
+            <Card key={entry.id} style={{ padding:"10px 14px", marginBottom:8 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                  <Icon name="moon2" size={14} color={qualityColors[entry.quality]}/>
+                  <div>
+                    <span style={{ fontSize:14, fontWeight:700 }}>{fmtDur(entry.durationMins)}</span>
+                    <span style={{ fontSize:10, color:qualityColors[entry.quality], marginLeft:6, fontWeight:600 }}>
+                      {qualityLabels[entry.quality]}
+                    </span>
+                  </div>
+                </div>
+                <span style={{ fontSize:11, color:T.muted }}>{fmtDate(entry.date)}</span>
+              </div>
+              {entry.note && <div style={{ fontSize:11, color:T.purple, marginTop:4, fontStyle:"italic" }}>"{entry.note}"</div>}
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Bodyweight */}
+      {bwLog.length > 0 && (
+        <div>
+          <div style={{ fontSize:11, fontWeight:700, color:T.muted, letterSpacing:"0.08em", marginBottom:10 }}>
+            BODYWEIGHT LOG
+          </div>
+          <Card style={{ padding:"12px 14px" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+              <span style={{ fontSize:13, color:T.muted }}>Latest</span>
+              <span style={{ fontSize:20, fontWeight:800, color:T.green }}>{bwLog[bwLog.length-1]?.weight}kg</span>
+            </div>
+            <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+              {bwLog.slice(-6).map((e,i)=>(
+                <div key={i} style={{ background:T.cardHi, border:`1px solid ${T.border}`,
+                  borderRadius:8, padding:"4px 10px", textAlign:"center" }}>
+                  <div style={{ fontSize:12, fontWeight:700, color:T.green }}>{e.weight}kg</div>
+                  <div style={{ fontSize:9, color:T.muted }}>{fmtShort(e.date)}</div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {sessions.length===0 && prCount===0 && sleepLog.length===0 && (
+        <Card style={{ textAlign:"center", padding:"32px 16px" }}>
+          <Icon name="user" size={36} color={T.border} style={{ display:"block", margin:"0 auto 10px" }}/>
+          <div style={{ color:T.muted, fontSize:13 }}>No data logged yet for {user.username}</div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 function AdminPanel({ currentUser }) {
-  const [users, setUsers]   = useState(()=>S.get("wt_users",[]));
-  const [newUser, setNewUser]= useState({username:"",password:"",role:"user"});
-  const [msg, setMsg]       = useState("");
+  const [users, setUsers]       = useState(()=>S.get("wt_users",[]));
+  const [newUser, setNewUser]   = useState({username:"",password:"",role:"user"});
+  const [msg, setMsg]           = useState("");
+  const [viewingUser, setViewingUser] = useState(null);
 
   function refresh() { setUsers(S.get("wt_users",[])); }
 
@@ -622,66 +834,75 @@ function AdminPanel({ currentUser }) {
   const allSessions = S.get("wt_sessions",[]);
   const statsPerUser = users.map(u=>({...u, sessions:allSessions.filter(s=>s.userId===u.id).length}));
 
+  // Show user detail view
+  if (viewingUser) return <UserDetailView user={viewingUser} onBack={()=>setViewingUser(null)}/>;
+
   return (
     <div>
       <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:24 }}>
-        <Icon name="shield" size={20} color={T.yellow}/><span style={{fontSize:18,fontWeight:800}}>Admin Panel</span><Tag label="ADMIN ONLY" color={T.yellow}/>
+        <Icon name="shield" size={20} color={T.yellow}/>
+        <span style={{fontSize:18,fontWeight:800}}>Admin Panel</span>
+        <Tag label="ADMIN ONLY" color={T.yellow}/>
       </div>
+
       <div style={{ fontSize:12, color:T.muted, marginBottom:10, letterSpacing:"0.08em" }}>USERS ({users.length})</div>
       <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:24 }}>
         {statsPerUser.map(u=>(
-          <Card key={u.id} style={{ padding:"12px 16px" }}>
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                <div style={{ width:36, height:36, borderRadius:10,
-                  background:u.role==="admin"?`${T.yellow}22`:`${T.blue}22`,
-                  display:"flex", alignItems:"center", justifyContent:"center" }}>
-                  <Icon name={u.role==="admin"?"crown":"user"} size={16} color={u.role==="admin"?T.yellow:T.blue}/>
+          <motion.div key={u.id} whileTap={{scale:0.98}}
+            onClick={()=>setViewingUser(u)}
+            style={{ cursor:"pointer" }}>
+            <Card style={{ padding:"12px 16px", border:`1px solid ${T.border}`,
+              transition:"border-color 0.2s" }}
+              onMouseEnter={e=>e.currentTarget.style.borderColor=T.blue}
+              onMouseLeave={e=>e.currentTarget.style.borderColor=T.border}>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                  <div style={{ width:36, height:36, borderRadius:10,
+                    background:u.role==="admin"?`${T.yellow}22`:`${T.blue}22`,
+                    display:"flex", alignItems:"center", justifyContent:"center" }}>
+                    <Icon name={u.role==="admin"?"crown":"user"} size={16}
+                      color={u.role==="admin"?T.yellow:T.blue}/>
+                  </div>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:14}}>{u.username}</div>
+                    <div style={{fontSize:11,color:T.muted}}>{u.sessions} sessions · {u.role}</div>
+                  </div>
                 </div>
-                <div>
-                  <div style={{fontWeight:700,fontSize:14}}>{u.username}</div>
-                  <div style={{fontSize:11,color:T.muted}}>{u.sessions} sessions · {u.role}</div>
+                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                  <Tag label={u.role.toUpperCase()} color={u.role==="admin"?T.yellow:T.blue}/>
+                  <Icon name="back" size={13} color={T.muted}
+                    style={{ transform:"rotate(180deg)" }}/>
+                  {u.id!==currentUser.id && (
+                    <motion.button whileTap={{scale:0.9}}
+                      onClick={e=>{e.stopPropagation(); deleteUser(u.id);}}
+                      style={{background:"none",border:"none",cursor:"pointer",padding:4}}>
+                      <Icon name="trash" size={15} color={T.danger}/>
+                    </motion.button>
+                  )}
                 </div>
               </div>
-              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                <Tag label={u.role.toUpperCase()} color={u.role==="admin"?T.yellow:T.blue}/>
-                {u.id!==currentUser.id && (
-                  <motion.button whileTap={{scale:0.9}} onClick={()=>deleteUser(u.id)} style={{background:"none",border:"none",cursor:"pointer",padding:4}}>
-                    <Icon name="trash" size={15} color={T.danger}/>
-                  </motion.button>
-                )}
-              </div>
-            </div>
-          </Card>
+            </Card>
+          </motion.div>
         ))}
       </div>
+
       <Card style={{padding:20}}>
         <div style={{fontSize:13,fontWeight:700,marginBottom:16,display:"flex",gap:8,alignItems:"center"}}>
           <Icon name="plus" size={16} color={T.blue}/> Add new user
         </div>
         <Input value={newUser.username} onChange={e=>setNewUser(p=>({...p,username:e.target.value}))} placeholder="Username"/>
-        <div style={{marginTop:10}}><Input type="password" value={newUser.password} onChange={e=>setNewUser(p=>({...p,password:e.target.value}))} placeholder="Password"/></div>
+        <div style={{marginTop:10}}>
+          <Input type="password" value={newUser.password} onChange={e=>setNewUser(p=>({...p,password:e.target.value}))} placeholder="Password"/>
+        </div>
         <div style={{display:"flex",gap:8,marginTop:10}}>
           <Pill label="User"  active={newUser.role==="user"}  onClick={()=>setNewUser(p=>({...p,role:"user"}))}/>
           <Pill label="Admin" active={newUser.role==="admin"} color={T.yellow} onClick={()=>setNewUser(p=>({...p,role:"admin"}))}/>
         </div>
         {msg && <div style={{color:msg.includes("!")?T.green:T.danger,fontSize:12,marginTop:8}}>{msg}</div>}
-        <div style={{marginTop:14}}><GlowBtn full onClick={addUser}><Icon name="plus" size={15} color="#fff"/> Create user</GlowBtn></div>
+        <div style={{marginTop:14}}>
+          <GlowBtn full onClick={addUser}><Icon name="plus" size={15} color="#fff"/> Create user</GlowBtn>
+        </div>
       </Card>
-      <div style={{marginTop:24}}>
-        <div style={{fontSize:12,color:T.muted,marginBottom:10,letterSpacing:"0.08em"}}>ALL SESSIONS ({allSessions.length})</div>
-        {allSessions.slice().sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,20).map(s=>{
-          const owner=users.find(u=>u.id===s.userId); const m=SCHEDULE[s.day];
-          return (
-            <Card key={s.id} style={{padding:"10px 14px",marginBottom:8}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div><span style={{fontWeight:600,fontSize:13,color:m?.color}}>{m?.label}</span><span style={{color:T.muted,fontSize:12}}> · {fmtDate(s.date)}</span></div>
-                <div style={{display:"flex",gap:6,alignItems:"center"}}><Icon name="user" size={12} color={T.muted}/><span style={{fontSize:11,color:T.muted}}>{owner?.username||"?"}</span></div>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
     </div>
   );
 }
@@ -2170,6 +2391,7 @@ export default function App() {
                 {today.toUpperCase()} · {todayMeta.label.toUpperCase()}
               </div>
               <div style={{display:"flex",alignItems:"center",gap:10,marginTop:1}}>
+                <AppLogo size={32}/>
                 <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.5px"}}>Over<span style={{color:T.yellow}}>load</span></div>
                 {streak>0 && (
                   <div style={{display:"flex",alignItems:"center",gap:4,background:`${T.orange}22`,
