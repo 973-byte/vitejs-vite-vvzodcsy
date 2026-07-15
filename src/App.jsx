@@ -590,6 +590,13 @@ function LoginScreen({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError]       = useState("");
+  const [phase, setPhase]       = useState("splash"); // splash → form
+
+  // After splash animation, switch to login form
+  useEffect(() => {
+    const t = setTimeout(() => setPhase("form"), 2200);
+    return () => clearTimeout(t);
+  }, []);
 
   function handle() {
     const u = S.get("wt_users",[]).find(u=>u.username===username.trim()&&u.password===password);
@@ -597,32 +604,188 @@ function LoginScreen({ onLogin }) {
     onLogin(u);
   }
 
+  const darkBlueBg = "#040812";
+
   return (
-    <div style={{ minHeight:"100dvh", display:"flex", alignItems:"center", justifyContent:"center", background:T.bg, padding:24 }}>
-      <motion.div initial={{opacity:0,y:24}} animate={{opacity:1,y:0}} style={{ width:"100%", maxWidth:360 }}>
-        <div style={{ textAlign:"center", marginBottom:32 }}>
-          <div style={{ margin:"0 auto 16px", width:60, display:"flex", justifyContent:"center" }}>
-            <AppLogo size={60}/>
-          </div>
-          <div style={{ fontSize:28, fontWeight:800, letterSpacing:"-0.5px" }}>Over<span style={{color:T.yellow}}>load</span></div>
-          <div style={{ color:T.muted, fontSize:13, marginTop:4 }}>Progressive training tracker</div>
-        </div>
-        <Card style={{ padding:24 }}>
-          <div style={{ fontSize:13, color:T.muted, marginBottom:6 }}>Username</div>
-          <Input value={username} onChange={e=>setUsername(e.target.value)} placeholder="Enter username"
-            onKeyDown={e=>e.key==="Enter"&&handle()}/>
-          <div style={{ fontSize:13, color:T.muted, margin:"14px 0 6px" }}>Password</div>
-          <Input type="password" value={password} onChange={e=>setPassword(e.target.value)}
-            placeholder="Enter password" onKeyDown={e=>e.key==="Enter"&&handle()}/>
-          {error && <motion.div initial={{opacity:0}} animate={{opacity:1}}
-            style={{ color:T.danger, fontSize:12, marginTop:10 }}>{error}</motion.div>}
-          <div style={{ marginTop:20 }}>
-            <GlowBtn full onClick={handle}>
-              <Icon name="user" size={16} color="#fff"/> Sign in
-            </GlowBtn>
-          </div>
-        </Card>
-      </motion.div>
+    <div style={{ minHeight:"100dvh", display:"flex", alignItems:"center",
+      justifyContent:"center", background: darkBlueBg, padding:24, position:"relative", overflow:"hidden" }}>
+
+      {/* Background rings — dark blue atmosphere */}
+      <div style={{ position:"absolute", inset:0, pointerEvents:"none" }}>
+        {[600,450,300].map((s,i)=>(
+          <div key={i} style={{
+            position:"absolute", top:"50%", left:"50%",
+            width:s, height:s, borderRadius:"50%",
+            border:`1px solid #1560E8${["0D","08","05"][i]}`,
+            transform:"translate(-50%,-50%)",
+          }}/>
+        ))}
+        {/* Subtle radial glow */}
+        <div style={{
+          position:"absolute", top:"35%", left:"50%", transform:"translate(-50%,-50%)",
+          width:320, height:320, borderRadius:"50%",
+          background:"radial-gradient(circle, #1560E80A 0%, transparent 70%)",
+        }}/>
+      </div>
+
+      <AnimatePresence mode="wait">
+
+        {/* ── SPLASH PHASE ── */}
+        {phase === "splash" && (
+          <motion.div key="splash"
+            initial={{ opacity:0 }}
+            animate={{ opacity:1 }}
+            exit={{ opacity:0, scale:0.9 }}
+            transition={{ duration:0.3 }}
+            style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:24 }}>
+
+            {/* Logo — zoom in, breathe, zoom out */}
+            <motion.div
+              initial={{ scale:0, opacity:0 }}
+              animate={{
+                scale:  [0, 1.15, 1, 1.06, 1],
+                opacity:[0, 1,    1, 1,    1],
+              }}
+              transition={{ duration:1.2, ease:"easeOut", times:[0,0.4,0.6,0.8,1] }}
+              style={{ filter:"drop-shadow(0 0 32px #1560E855)" }}>
+              <AppLogo size={96}/>
+            </motion.div>
+
+            {/* Wordmark — slides up after logo */}
+            <motion.div
+              initial={{ opacity:0, y:16 }}
+              animate={{ opacity:1, y:0 }}
+              transition={{ delay:0.7, duration:0.5, ease:"easeOut" }}
+              style={{ textAlign:"center" }}>
+              <div style={{ fontSize:32, fontWeight:900, letterSpacing:"-1px", color:"#F0F2FF" }}>
+                Over<span style={{color:T.blue}}>load</span>
+              </div>
+              <motion.div
+                initial={{ opacity:0 }}
+                animate={{ opacity:1 }}
+                transition={{ delay:1.1, duration:0.4 }}
+                style={{ fontSize:13, color:"#4D6099", marginTop:6, letterSpacing:"0.08em", fontWeight:500 }}>
+                PROGRESSIVE TRAINING TRACKER
+              </motion.div>
+            </motion.div>
+
+            {/* Loading dots */}
+            <motion.div
+              initial={{ opacity:0 }}
+              animate={{ opacity:1 }}
+              transition={{ delay:1.4 }}
+              style={{ display:"flex", gap:6, marginTop:8 }}>
+              {[0,1,2].map(i => (
+                <motion.div key={i}
+                  animate={{ scale:[1,1.4,1], opacity:[0.3,1,0.3] }}
+                  transition={{ duration:0.8, repeat:Infinity, delay:i*0.18, ease:"easeInOut" }}
+                  style={{ width:6, height:6, borderRadius:"50%", background:T.blue }}/>
+              ))}
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* ── LOGIN FORM PHASE ── */}
+        {phase === "form" && (
+          <motion.div key="form"
+            initial={{ opacity:0, scale:0.92, y:20 }}
+            animate={{ opacity:1, scale:1, y:0 }}
+            transition={{ duration:0.45, ease:[0.22,1,0.36,1] }}
+            style={{ width:"100%", maxWidth:360, position:"relative", zIndex:1 }}>
+
+            {/* Logo small */}
+            <motion.div
+              initial={{ scale:0.6, opacity:0 }}
+              animate={{ scale:1, opacity:1 }}
+              transition={{ duration:0.4, delay:0.1 }}
+              style={{ textAlign:"center", marginBottom:28 }}>
+              <div style={{ display:"flex", justifyContent:"center", marginBottom:14,
+                filter:"drop-shadow(0 0 20px #1560E855)" }}>
+                <AppLogo size={64}/>
+              </div>
+              <div style={{ fontSize:26, fontWeight:900, letterSpacing:"-0.5px", color:"#F0F2FF" }}>
+                Over<span style={{color:T.blue}}>load</span>
+              </div>
+              <div style={{ color:"#3D5080", fontSize:12, marginTop:5, letterSpacing:"0.06em", fontWeight:500 }}>
+                SIGN IN TO CONTINUE
+              </div>
+            </motion.div>
+
+            {/* Form card */}
+            <motion.div
+              initial={{ opacity:0, y:16 }}
+              animate={{ opacity:1, y:0 }}
+              transition={{ delay:0.2, duration:0.35 }}
+              style={{
+                background:"#080D1E",
+                border:`1px solid #1560E833`,
+                borderRadius:18,
+                padding:"24px 22px",
+                boxShadow:`0 0 0 1px #1560E811, 0 24px 48px #00000088`
+              }}>
+
+              <div style={{ fontSize:12, color:"#4D6099", marginBottom:6, fontWeight:600, letterSpacing:"0.04em" }}>USERNAME</div>
+              <input
+                value={username} onChange={e=>setUsername(e.target.value)}
+                onKeyDown={e=>e.key==="Enter"&&handle()}
+                placeholder="Enter username"
+                style={{
+                  width:"100%", background:"#040812",
+                  border:`1px solid #1560E833`,
+                  borderRadius:10, color:"#F0F2FF",
+                  padding:"11px 14px", fontSize:14, outline:"none",
+                  boxSizing:"border-box", fontFamily:"inherit",
+                  transition:"border-color 0.2s"
+                }}
+                onFocus={e=>e.target.style.borderColor="#1560E8"}
+                onBlur={e=>e.target.style.borderColor="#1560E833"}
+              />
+
+              <div style={{ fontSize:12, color:"#4D6099", margin:"16px 0 6px", fontWeight:600, letterSpacing:"0.04em" }}>PASSWORD</div>
+              <input
+                type="password"
+                value={password} onChange={e=>setPassword(e.target.value)}
+                onKeyDown={e=>e.key==="Enter"&&handle()}
+                placeholder="Enter password"
+                style={{
+                  width:"100%", background:"#040812",
+                  border:`1px solid #1560E833`,
+                  borderRadius:10, color:"#F0F2FF",
+                  padding:"11px 14px", fontSize:14, outline:"none",
+                  boxSizing:"border-box", fontFamily:"inherit",
+                  transition:"border-color 0.2s"
+                }}
+                onFocus={e=>e.target.style.borderColor="#1560E8"}
+                onBlur={e=>e.target.style.borderColor="#1560E833"}
+              />
+
+              {error && (
+                <motion.div initial={{opacity:0,y:-4}} animate={{opacity:1,y:0}}
+                  style={{ color:T.danger, fontSize:12, marginTop:10, fontWeight:500 }}>
+                  {error}
+                </motion.div>
+              )}
+
+              <motion.button
+                whileTap={{ scale:0.97 }}
+                whileHover={{ boxShadow:`0 0 28px ${T.blue}66` }}
+                onClick={handle}
+                style={{
+                  width:"100%", marginTop:20,
+                  background:`linear-gradient(135deg, #0D3A8A, #1560E8)`,
+                  color:"#fff", border:"none", borderRadius:12,
+                  padding:"13px 0", fontSize:14, fontWeight:700,
+                  cursor:"pointer", display:"flex", alignItems:"center",
+                  justifyContent:"center", gap:8,
+                  boxShadow:`0 0 20px ${T.blue}44`,
+                  fontFamily:"inherit"
+                }}>
+                <Icon name="user" size={16} color="#fff"/> Sign in
+              </motion.button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -2454,7 +2617,7 @@ export default function App() {
               </div>
               <div style={{display:"flex",alignItems:"center",gap:10,marginTop:1}}>
                 <AppLogo size={32}/>
-                <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.5px"}}>Over<span style={{color:T.yellow}}>load</span></div>
+                <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.5px"}}>Over<span style={{color:T.blue}}>load</span></div>
                 {streak>0 && (
                   <div style={{display:"flex",alignItems:"center",gap:4,background:`${T.orange}22`,
                     border:`1px solid ${T.orange}44`,borderRadius:20,padding:"2px 8px"}}>
