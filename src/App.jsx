@@ -5,39 +5,15 @@ import {
   CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine
 } from "recharts";
 
-// ─── Theme system ─────────────────────────────────────────────────────────────
-const DARK = {
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const T = {
   blue:    "#1560E8", blueHi: "#4D8EFF", blueDim: "#0D3A8A",
   yellow:  "#F5C518", yellowDim: "#3A3100",
   bg:      "#0B0D1A", card: "#12152B", cardHi: "#181D35",
   border:  "#1E2340", text: "#F0F2FF", muted: "#6B7299",
   danger:  "#E84545", green: "#22C97A", purple: "#9B4DFF",
-  orange:  "#FF6B35", mode: "dark",
+  orange:  "#FF6B35",
 };
-const LIGHT = {
-  blue:    "#1560E8", blueHi: "#0D3A8A", blueDim: "#DBEAFE",
-  yellow:  "#D4A000", yellowDim: "#FEF9E7",
-  bg:      "#F0F4FF", card: "#FFFFFF", cardHi: "#F8F9FF",
-  border:  "#D1D9F0", text: "#0F172A", muted: "#64748B",
-  danger:  "#DC2626", green: "#059669", purple: "#7C3AED",
-  orange:  "#EA580C", mode: "light",
-};
-
-// Global theme ref — updated by App, read by all components
-let T = { ...DARK };
-function setTheme(isDark) { Object.assign(T, isDark ? DARK : LIGHT); }
-
-const mkCSS = (light) => `
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  body{background:${light?LIGHT.bg:DARK.bg};color:${light?LIGHT.text:DARK.text};font-family:-apple-system,'Inter',BlinkMacSystemFont,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;transition:background 0.3s,color 0.3s}
-  input,button,textarea{font-family:inherit}
-  input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
-  ::-webkit-scrollbar{width:4px;height:4px}
-  ::-webkit-scrollbar-track{background:transparent}
-  ::-webkit-scrollbar-thumb{background:${light?LIGHT.border:DARK.border};border-radius:4px}
-  ::placeholder{color:${light?LIGHT.muted:DARK.muted}}
-  *{transition:background-color 0.2s,border-color 0.2s,color 0.15s}
-`;
 
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
 const Icon = ({ name, size = 18, color = "currentColor", style = {} }) => {
@@ -100,120 +76,77 @@ const SCHEDULE = {
   Sunday:    { label: "Abs + Cardio", sub: "Core · Conditioning",   color: T.yellow },
 };
 
-
-// ─── Complete Exercise Bank (400+ exercises, all body parts) ──────────────────
-const EXERCISE_BANK_ALL = {
-  chest:      { label:"Chest",      machines:["Chest Press Machine","Incline Chest Press Machine","Decline Chest Press Machine","Converging Chest Press","Hammer Strength Iso-Lateral Chest Press","Hammer Strength Incline Press","Hammer Strength Decline Press","Hammer Strength Super Fly","Pec Deck / Butterfly Machine","Nautilus Pec Fly","Life Fitness Chest Press","Cybex Eagle Chest Press","Matrix Chest Press","Hoist Roc-It Chest Press","Freemotion Chest Press","TechnoGym Chest Press","Smith Machine Bench Press","Smith Machine Incline Press","Smith Machine Decline Press","Plate-Loaded Bench Press","Assisted Dip Machine"], cables:["Cable Crossover (High-to-Low)","Cable Crossover (Low-to-High)","Cable Fly (Mid)","Incline Cable Fly","Decline Cable Fly","Single-Arm Cable Fly","Cable Pullover","Rope Cable Fly","Straight-Bar Cable Crossover"], dumbbells:["Flat DB Press","Incline DB Press","Decline DB Press","DB Flyes (Flat)","DB Flyes (Incline)","DB Flyes (Decline)","DB Pullover","Single-Arm DB Press","Squeeze Press"], barbells:["Flat Bench Press","Incline Bench Press","Decline Bench Press","Close-Grip Bench Press","Wide-Grip Bench Press"] },
-  triceps:    { label:"Triceps",    machines:["Tricep Pushdown Machine","Overhead Tricep Machine","Plate-Loaded Dip Machine","Assisted Dip Machine","Nautilus Tricep Machine","Life Fitness Seated Dip","Cybex VR3 Seated Dip","Hammer Strength Dip","Hoist Roc-It Seated Dip","Freemotion Tricep Machine"], cables:["Cable Tricep Pushdown (Straight Bar)","Cable Tricep Pushdown (Rope)","Cable Tricep Pushdown (V-Bar)","Cable Overhead Tricep Extension (Rope)","Cable Overhead Tricep Extension (Bar)","Single-Arm Cable Pushdown","Cable Tricep Kickback","Cable Skull Crusher","Reverse-Grip Cable Pushdown"], dumbbells:["DB Skull Crushers","DB Overhead Tricep Extension","Single-Arm DB Overhead Extension","DB Tricep Kickbacks","DB Tate Press","DB Close-Press"], barbells:["Skull Crushers (EZ Bar)","Close-Grip Bench Press","Barbell Overhead Tricep Extension","JM Press"] },
-  back:       { label:"Back",       machines:["Lat Pulldown Machine (Wide)","Lat Pulldown Machine (Close)","Lat Pulldown Machine (Neutral)","Seated Row Machine","Chest-Supported Row Machine","Hammer Strength High Row","Hammer Strength Low Row","Hammer Strength Iso-Lateral Row","Hammer Strength MTS Row","Nautilus Pullover Machine","Life Fitness Lat Pulldown","Life Fitness Row","Cybex VR3 Lat Pulldown","Hoist Roc-It Lat Pulldown","Freemotion Lat Machine","Freemotion Row","Matrix Lat Pulldown","Assisted Pull-Up Machine","Back Extension Machine (45°)","Back Extension Machine (90°)","Reverse Hyperextension Machine","Plate-Loaded T-Bar Row","Pendulum Row","Hammer Strength Pulldown","TechnoGym Pulldown"], cables:["Lat Pulldown (Wide Grip)","Lat Pulldown (Close Grip)","Lat Pulldown (Neutral Grip)","Lat Pulldown (Reverse Grip)","Seated Cable Row (Close Grip)","Seated Cable Row (Wide Grip)","Single-Arm Cable Row","Cable Face Pull (Rope)","Straight-Arm Cable Pulldown","Cable Pullover","High Cable Row","Low Cable Row","Cable Shrug","Cable Deadlift","Kneeling Cable Row","Dual Cable Row"], dumbbells:["Single-Arm DB Row","DB Bent-Over Row","DB Pullover","Incline DB Row (Chest Supported)","DB Seal Row","Renegade Row","DB Shrug","DB Meadows Row","DB Kroc Row"], barbells:["Deadlift","Conventional Deadlift","Barbell Bent-Over Row","Pendlay Row","T-Bar Row","Barbell Shrug","Rack Pull","Good Morning","Romanian Deadlift (Back Focus)"] },
-  biceps:     { label:"Biceps",     machines:["Machine Bicep Curl","Machine Preacher Curl","Plate-Loaded Preacher Curl","Nautilus Bicep Curl","Life Fitness Bicep Curl","Cybex VR3 Bicep Curl","Hoist Roc-It Bicep Curl","Hammer Strength Bicep Curl","Spider Curl Machine","Freemotion Bicep Machine","TechnoGym Bicep Curl"], cables:["Cable Bicep Curl (Bar)","Cable Bicep Curl (Rope)","Single-Arm Cable Curl","Cable Hammer Curl","Cable Preacher Curl","High-Pulley Cable Curl","Behind-the-Body Cable Curl","Cable Reverse Curl","Cable 21s","Dual Cable Curl"], dumbbells:["DB Bicep Curl","Alternating DB Curl","DB Hammer Curl","Incline DB Curl","Concentration Curl","DB Zottman Curl","DB Reverse Curl","DB Preacher Curl","Cross-Body Hammer Curl","DB Scott Curl","Seated DB Curl"], barbells:["Barbell Bicep Curl","EZ Bar Curl","Wide-Grip Barbell Curl","Narrow-Grip Barbell Curl","Barbell Preacher Curl","Barbell Reverse Curl","21s (Barbell)"] },
-  shoulders:  { label:"Shoulders",  machines:["Shoulder Press Machine","Overhead Press Machine","Hammer Strength Shoulder Press","Hammer Strength Iso-Lateral Shoulder Press","Life Fitness Shoulder Press","Cybex Eagle Shoulder Press","Nautilus Shoulder Press","Matrix Shoulder Press","TechnoGym Shoulder Press","Machine Lateral Raise","Cybex VR3 Lateral Raise","Machine Rear Delt Fly","Pec Deck Reverse (Rear Delt)","Cybex VR3 Pec Fly / Rear Delt","Machine Shrug","Plate-Loaded Shrug","Smith Machine OHP","Freemotion Shoulder Machine"], cables:["Cable Lateral Raise (Single Arm)","Cable Lateral Raise (Dual)","Cable Front Raise","Cable Rear Delt Fly","Rope Face Pull","Cable Upright Row","Cable Shrug","Cable Y-Raise","Cable W-Raise","Single-Arm Cable Rear Delt Fly","Cable Arnold Press","Kneeling Cable Rear Delt"], dumbbells:["DB Overhead Press (Seated)","DB Overhead Press (Standing)","Arnold Press","DB Lateral Raise","DB Front Raise","DB Rear Delt Fly","DB Upright Row","DB Shrug","Single-Arm DB Lateral Raise","DB Face Pull","DB Y-Raise","DB W-Raise","DB Cuban Press","DB Push Press"], barbells:["Barbell Overhead Press","Behind-the-Neck Press","Barbell Upright Row","Barbell Shrug","Push Press","Z-Press","Barbell Front Raise"] },
-  forearms:   { label:"Forearms",   machines:["Wrist Curl Machine","Reverse Wrist Curl Machine","Grip Strength Trainer","Forearm Rotation Machine","Plate Pinch Station"], cables:["Cable Wrist Curl","Cable Reverse Wrist Curl","Cable Reverse Curl"], dumbbells:["DB Wrist Curl","DB Reverse Wrist Curl","DB Zottman Curl","DB Farmer Carry","DB Reverse Curl","DB Pinch Curl"], barbells:["Barbell Wrist Curl","Barbell Reverse Wrist Curl","Behind-Back Wrist Curl","Barbell Reverse Curl"] },
-  quads:      { label:"Quads",      machines:["Leg Extension Machine","Leg Press Machine (45°)","Leg Press Machine (Horizontal)","Leg Press Machine (Vertical)","Hack Squat Machine","Pendulum Squat","V-Squat Machine","Belt Squat Machine","Hammer Strength Leg Press","Hammer Strength Hack Squat","Cybex VR3 Leg Extension","Life Fitness Leg Extension","Matrix Leg Extension","Hoist Roc-It Leg Extension","Freemotion Squat Machine","Sissy Squat Machine","TechnoGym Leg Extension","Nautilus Leg Extension","Smith Machine Squat","Smith Machine Lunge"], cables:["Cable Squat","Cable Lunge","Cable Step-Up","Cable Leg Extension","Cable Pull-Through (Quad Focus)"], dumbbells:["DB Goblet Squat","DB Lunges","DB Walking Lunges","DB Step-Up","DB Bulgarian Split Squat","DB Front Squat","DB Box Step-Up","DB Sumo Squat","DB Reverse Lunge","DB Lateral Lunge","DB Pistol Squat (Assisted)"], barbells:["Barbell Squat","Front Squat","Hack Squat (Barbell)","Barbell Lunges","Barbell Walking Lunges","Pause Squat","Box Squat","Barbell Step-Up","Barbell Bulgarian Split Squat","Safety Bar Squat"] },
-  hamstrings: { label:"Hamstrings", machines:["Leg Curl Machine (Lying)","Leg Curl Machine (Seated)","Leg Curl Machine (Standing)","Glute Ham Raise Machine","Nordic Curl Machine","Hammer Strength Lying Leg Curl","Life Fitness Lying Leg Curl","Cybex VR3 Prone Leg Curl","Matrix Lying Leg Curl","Nautilus Leg Curl","TechnoGym Leg Curl","Hoist Roc-It Leg Curl"], cables:["Cable Romanian Deadlift","Cable Leg Curl","Cable Single-Leg Curl","Cable Pull-Through (Hamstring Focus)","Cable Stiff-Leg Deadlift"], dumbbells:["DB Romanian Deadlift","DB Stiff-Leg Deadlift","DB Single-Leg RDL","DB Good Morning","DB Leg Curl (Lying)"], barbells:["Romanian Deadlift","Sumo Deadlift","Stiff-Leg Deadlift","Single-Leg RDL","Nordic Hamstring Curl","Barbell Good Morning"] },
-  glutes:     { label:"Glutes",     machines:["Hip Thrust Machine","Plate-Loaded Hip Thrust","Smith Machine Hip Thrust","Glute Kickback Machine","Abductor Machine (Hip Abduction)","Adductor Machine (Hip Adduction)","Cybex Eagle Hip Abduction","Life Fitness Hip Abductor","Hammer Strength Hip Abductor","Belt Squat (Glute Focus)","Pendulum Hip Extension","Donkey Kick Machine","Reverse Hyperextension Machine","Roman Chair (Glute Focus)"], cables:["Cable Glute Kickback","Cable Hip Abduction","Cable Hip Extension","Cable Pull-Through (Glute Focus)","Cable Donkey Kick","Cable Sumo Squat","Cable Hip Thrust","Standing Cable Abduction"], dumbbells:["DB Hip Thrust","DB Glute Bridge","DB Single-Leg Hip Thrust","DB Sumo Squat","DB Step-Up (Glute Focus)","DB Lateral Lunge","DB Curtsy Lunge"], barbells:["Barbell Hip Thrust","Barbell Glute Bridge","Barbell Sumo Squat","Sumo Deadlift (Glute Focus)"] },
-  calves:     { label:"Calves",     machines:["Standing Calf Raise Machine","Seated Calf Raise Machine","Donkey Calf Raise Machine","Cybex VR3 Standing Calf","Cybex Eagle Seated Calf","Leg Press Calf Raise","Plate-Loaded Calf Raise","Single-Leg Calf Raise Machine","TechnoGym Calf","Life Fitness Calf Machine","Smith Machine Calf Raise"], cables:["Cable Calf Raise","Cable Single-Leg Calf Raise"], dumbbells:["DB Calf Raise (Standing)","DB Calf Raise (Seated)","DB Single-Leg Calf Raise","DB Donkey Calf Raise"], barbells:["Barbell Calf Raise","Barbell Seated Calf Raise"] },
-  abs:        { label:"Abs & Core", machines:["Ab Crunch Machine","Rotary Torso Machine","Ab Coaster","Captain's Chair Leg Raise","Roman Chair Sit-Up","Decline Bench Sit-Up","Decline Bench Leg Raise","Cybex Eagle Abdominal","Hoist Roc-It Abs","Freemotion Abdominal","Life Fitness Ab Crunch","Nautilus Ab Machine","TechnoGym Rotary Torso","Matrix Ab Machine","GHD Machine (Core)","Glute Ham Developer Sit-Up"], cables:["Cable Crunch (Kneeling)","Cable Crunch (Standing)","Rope Cable Crunch","Cable Woodchop (High-to-Low)","Cable Woodchop (Low-to-High)","Cable Pallof Press","Cable Side Bend","Cable Russian Twist","Cable Reverse Crunch","Cable Leg Raise","Half-Kneeling Cable Chop","Cable Oblique Crunch","Tall-Kneeling Cable Crunch"], dumbbells:["DB Crunch","Weighted Sit-Up","DB Russian Twist","DB Side Bend","DB Woodchop","DB Oblique Crunch","DB Windmill"], barbells:["Barbell Rollout","Landmine Twist","Barbell Side Bend"], bodyweight:["Plank","Side Plank","Reverse Plank","Crunches","Bicycle Crunches","Hanging Leg Raises","Hanging Knee Raises","Dragon Flag","Dead Bug","Ab Wheel Rollout","V-ups","Hollow Body Hold","L-Sit","Flutter Kicks","Scissor Kicks","Toe Touches","Mountain Climbers","Tuck-up","Reverse Crunch"] },
-  cardio:     { label:"Cardio",     machines:["Treadmill (Walk)","Treadmill (Run)","Treadmill (Sprint)","Incline Treadmill Walk","Curved Treadmill","Elliptical Trainer","Arc Trainer (Cybex)","Stair Climber (StairMaster)","Stair Mill","Rowing Machine (Concept2)","Ski Erg (Concept2)","BikeErg (Concept2)","Assault Bike / Air Bike","Schwinn Airdyne","Stationary Bike (Upright)","Recumbent Bike","Spin Bike / Indoor Cycle","Peloton Bike","Jacobs Ladder","VersaClimber","Hand Cycle / UBE","NuStep Recumbent Cross Trainer"], cables:[], dumbbells:[], barbells:[], bodyweight:["Battle Ropes","Jump Rope","Sled Push","Sled Pull","Farmer's Carry (Cardio)","Tire Flip","Box Jumps","Burpees","Jumping Jacks","HIIT Sprints","Bear Crawl","Kettlebell Swings","Medicine Ball Slam","Sandbag Carry","Prowler Push","Sprint Intervals"] },
+const EXERCISE_BANK = {
+  Monday: [
+    // Dumbbells
+    "Flat DB Press","Incline DB Press","Decline DB Press","DB Flyes","DB Pullover",
+    // Barbells
+    "Flat Bench Press","Incline Bench Press","Decline Bench Press","Close-Grip Bench Press","Skull Crushers",
+    // Cable
+    "Cable Crossover","Low Cable Fly","High Cable Fly","Cable Tricep Pushdown (Rope)","Cable Tricep Pushdown (Bar)","Cable Overhead Tricep Extension","Cable Kickbacks",
+    // Machines
+    "Chest Press Machine","Pec Deck / Butterfly","Assisted Dips Machine","Tricep Pushdown Machine","Smith Machine Bench Press",
+  ],
+  Tuesday: [
+    // Dumbbells
+    "Single-Arm DB Row","DB Bicep Curl","DB Hammer Curl","DB Concentration Curl","Incline DB Curl","DB Shrug",
+    // Barbells
+    "Deadlift","Barbell Row","T-Bar Row","Barbell Bicep Curl","Preacher Curl (Barbell)","Barbell Shrug",
+    // Cable
+    "Lat Pulldown (Wide)","Lat Pulldown (Close)","Seated Cable Row","Cable Face Pull","Straight-Arm Pulldown","Cable Hammer Curl","Cable Bicep Curl","Cable Row (Single Arm)",
+    // Machines
+    "Assisted Pull-ups","Machine Row","Machine High Row","Machine Bicep Curl","Machine Preacher Curl",
+  ],
+  Wednesday: [
+    // Dumbbells
+    "DB Overhead Press","Arnold Press","DB Lateral Raise","DB Front Raise","DB Rear Delt Fly","DB Shrug","DB Wrist Curl","DB Reverse Wrist Curl",
+    // Barbells
+    "Barbell Overhead Press","Barbell Upright Row","Barbell Shrug","Behind-the-Neck Press","Barbell Wrist Curl",
+    // Cable
+    "Cable Lateral Raise","Cable Front Raise","Cable Rear Delt Fly","Cable Upright Row","Cable Face Pull","Cable Shrug",
+    // Machines
+    "Machine Shoulder Press","Machine Lateral Raise","Machine Rear Delt","Smith Machine OHP","Pec Deck Rear Delt",
+  ],
+  Thursday: [
+    // Dumbbells
+    "Flat DB Press","Incline DB Press","Decline DB Press","DB Flyes","DB Pullover",
+    // Barbells
+    "Flat Bench Press","Incline Bench Press","Decline Bench Press","Close-Grip Bench Press","Skull Crushers",
+    // Cable
+    "Cable Crossover","Low Cable Fly","High Cable Fly","Cable Tricep Pushdown (Rope)","Cable Tricep Pushdown (Bar)","Cable Overhead Tricep Extension","Cable Kickbacks",
+    // Machines
+    "Chest Press Machine","Pec Deck / Butterfly","Assisted Dips Machine","Tricep Pushdown Machine","Smith Machine Bench Press",
+  ],
+  Friday: [
+    // Dumbbells
+    "Single-Arm DB Row","DB Bicep Curl","DB Hammer Curl","DB Concentration Curl","Incline DB Curl","DB Shrug",
+    // Barbells
+    "Deadlift","Barbell Row","T-Bar Row","Barbell Bicep Curl","Preacher Curl (Barbell)","Barbell Shrug",
+    // Cable
+    "Lat Pulldown (Wide)","Lat Pulldown (Close)","Seated Cable Row","Cable Face Pull","Straight-Arm Pulldown","Cable Hammer Curl","Cable Bicep Curl","Cable Row (Single Arm)",
+    // Machines
+    "Assisted Pull-ups","Machine Row","Machine High Row","Machine Bicep Curl","Machine Preacher Curl",
+  ],
+  Saturday: [
+    // Dumbbells
+    "DB Goblet Squat","DB Lunges","DB Romanian Deadlift","DB Step-up","DB Hip Thrust","DB Calf Raise",
+    // Barbells
+    "Barbell Squat","Front Squat","Sumo Deadlift","Romanian Deadlift","Barbell Lunge","Barbell Hip Thrust","Barbell Calf Raise",
+    // Cable
+    "Cable Pull-through","Cable Kickback","Cable Leg Curl","Cable Hip Abduction",
+    // Machines
+    "Leg Press","Hack Squat Machine","Leg Extension","Leg Curl (Lying)","Leg Curl (Seated)","Hip Thrust Machine","Glute Kickback Machine","Calf Raise Machine","Smith Machine Squat","Adductor Machine","Abductor Machine",
+  ],
+  Sunday: [
+    // Abs
+    "Crunches","Bicycle Crunches","Hanging Leg Raises","Plank","Side Plank","Russian Twist","Ab Wheel Rollout","Cable Crunches","Decline Sit-ups","Toe Touches","Mountain Climbers","Dragon Flag","V-ups","Dead Bug",
+    // Cardio
+    "Treadmill","Incline Walk","Cycling (Stationary)","Rowing Machine","Stair Climber","Jump Rope","Battle Ropes","Burpees","Box Jumps","Elliptical","HIIT Sprints","Sled Push",
+  ],
 };
 
-// All exercises flat list
-const ALL_EXERCISES = [...new Set(
-  Object.values(EXERCISE_BANK_ALL).flatMap(g =>
-    [...(g.machines||[]),...(g.cables||[]),...(g.dumbbells||[]),...(g.barbells||[]),...(g.bodyweight||[])]
-  )
-)].sort();
-
-// Body part groups for picker UI
-const BODY_PART_GROUPS = Object.entries(EXERCISE_BANK_ALL).map(([key,g])=>({
-  key, label:g.label,
-  exercises:[...(g.machines||[]),...(g.cables||[]),...(g.dumbbells||[]),...(g.barbells||[]),...(g.bodyweight||[])],
-}));
-
-// ─── Workout Splits ───────────────────────────────────────────────────────────
-const ALL_GROUPS = Object.keys(EXERCISE_BANK_ALL);
-const WORKOUT_SPLITS = {
-  ppl:{
-    label:"Push / Pull / Legs",
-    days:{
-      Monday:   {label:"Push",        sub:"Chest · Shoulders · Triceps",     color:"#1560E8",groups:["chest","shoulders","triceps"]},
-      Tuesday:  {label:"Pull",        sub:"Back · Biceps · Forearms",        color:"#9B4DFF",groups:["back","biceps","forearms"]},
-      Wednesday:{label:"Legs",        sub:"Quads · Hams · Glutes · Calves",  color:"#22C97A",groups:["quads","hamstrings","glutes","calves"]},
-      Thursday: {label:"Push",        sub:"Chest · Shoulders · Triceps",     color:"#1560E8",groups:["chest","shoulders","triceps"]},
-      Friday:   {label:"Pull",        sub:"Back · Biceps · Forearms",        color:"#9B4DFF",groups:["back","biceps","forearms"]},
-      Saturday: {label:"Legs",        sub:"Quads · Hams · Glutes · Calves",  color:"#22C97A",groups:["quads","hamstrings","glutes","calves"]},
-      Sunday:   {label:"Rest / Cardio",sub:"Abs · Conditioning",            color:"#F5C518",groups:["abs","cardio"]},
-    },
-  },
-  upper_lower:{
-    label:"Upper / Lower",
-    days:{
-      Monday:   {label:"Upper A",     sub:"Chest · Back · Shoulders · Arms", color:"#1560E8",groups:["chest","back","shoulders","biceps","triceps"]},
-      Tuesday:  {label:"Lower A",     sub:"Quads · Hams · Glutes · Calves", color:"#22C97A",groups:["quads","hamstrings","glutes","calves"]},
-      Wednesday:{label:"Core + Cardio",sub:"Abs · Conditioning",            color:"#F5C518",groups:["abs","cardio"]},
-      Thursday: {label:"Upper B",     sub:"Chest · Back · Shoulders · Arms", color:"#1560E8",groups:["chest","back","shoulders","biceps","triceps"]},
-      Friday:   {label:"Lower B",     sub:"Quads · Hams · Glutes · Calves", color:"#22C97A",groups:["quads","hamstrings","glutes","calves"]},
-      Saturday: {label:"Full Body",   sub:"Compound Movements",             color:"#FF6B35",groups:["chest","back","quads","shoulders"]},
-      Sunday:   {label:"Rest",        sub:"Recovery Day",                   color:"#6B7299",groups:["cardio","abs"]},
-    },
-  },
-  bro_split:{
-    label:"Bro Split (Classic)",
-    days:{
-      Monday:   {label:"Chest Day",   sub:"Chest · Triceps",                color:"#1560E8",groups:["chest","triceps"]},
-      Tuesday:  {label:"Back Day",    sub:"Back · Biceps",                  color:"#9B4DFF",groups:["back","biceps"]},
-      Wednesday:{label:"Shoulder Day",sub:"Shoulders · Forearms",           color:"#FF6B35",groups:["shoulders","forearms"]},
-      Thursday: {label:"Arm Day",     sub:"Biceps · Triceps · Forearms",    color:"#F5C518",groups:["biceps","triceps","forearms"]},
-      Friday:   {label:"Leg Day",     sub:"Quads · Hams · Glutes · Calves", color:"#22C97A",groups:["quads","hamstrings","glutes","calves"]},
-      Saturday: {label:"Chest + Back",sub:"Compound Push-Pull",             color:"#1560E8",groups:["chest","back","shoulders"]},
-      Sunday:   {label:"Abs + Cardio",sub:"Core · Conditioning",            color:"#F5C518",groups:["abs","cardio"]},
-    },
-  },
-  full_body:{
-    label:"Full Body (3×/week)",
-    days:{
-      Monday:   {label:"Full Body A", sub:"All Muscle Groups",              color:"#1560E8",groups:["chest","back","quads","hamstrings","shoulders","biceps","triceps"]},
-      Tuesday:  {label:"Cardio+Core", sub:"Conditioning",                  color:"#F5C518",groups:["cardio","abs"]},
-      Wednesday:{label:"Full Body B", sub:"All Muscle Groups",              color:"#9B4DFF",groups:["chest","back","quads","hamstrings","shoulders","biceps","triceps"]},
-      Thursday: {label:"Cardio+Core", sub:"Conditioning",                  color:"#F5C518",groups:["cardio","abs"]},
-      Friday:   {label:"Full Body C", sub:"All Muscle Groups",              color:"#22C97A",groups:["chest","back","quads","glutes","calves","shoulders"]},
-      Saturday: {label:"Active Recovery",sub:"Light Cardio / Mobility",     color:"#FF6B35",groups:["cardio","abs"]},
-      Sunday:   {label:"Rest",        sub:"Recovery Day",                   color:"#6B7299",groups:["cardio"]},
-    },
-  },
-  arnold:{
-    label:"Arnold Split",
-    days:{
-      Monday:   {label:"Chest + Back",sub:"Push-Pull Superset",            color:"#1560E8",groups:["chest","back"]},
-      Tuesday:  {label:"Shoulders+Arms",sub:"Delts · Bis · Tris",          color:"#FF6B35",groups:["shoulders","biceps","triceps","forearms"]},
-      Wednesday:{label:"Legs",        sub:"Quads · Hams · Glutes · Calves", color:"#22C97A",groups:["quads","hamstrings","glutes","calves"]},
-      Thursday: {label:"Chest + Back",sub:"Push-Pull Superset",            color:"#1560E8",groups:["chest","back"]},
-      Friday:   {label:"Shoulders+Arms",sub:"Delts · Bis · Tris",          color:"#FF6B35",groups:["shoulders","biceps","triceps","forearms"]},
-      Saturday: {label:"Legs",        sub:"Quads · Hams · Glutes · Calves", color:"#22C97A",groups:["quads","hamstrings","glutes","calves"]},
-      Sunday:   {label:"Rest/Cardio", sub:"Active Recovery",               color:"#6B7299",groups:["cardio","abs"]},
-    },
-  },
-  custom:{
-    label:"Custom Split",
-    days:{
-      Monday:   {label:"Day 1",sub:"All exercises available",color:"#1560E8",groups:ALL_GROUPS},
-      Tuesday:  {label:"Day 2",sub:"All exercises available",color:"#9B4DFF",groups:ALL_GROUPS},
-      Wednesday:{label:"Day 3",sub:"All exercises available",color:"#FF6B35",groups:ALL_GROUPS},
-      Thursday: {label:"Day 4",sub:"All exercises available",color:"#1560E8",groups:ALL_GROUPS},
-      Friday:   {label:"Day 5",sub:"All exercises available",color:"#9B4DFF",groups:ALL_GROUPS},
-      Saturday: {label:"Day 6",sub:"All exercises available",color:"#22C97A",groups:ALL_GROUPS},
-      Sunday:   {label:"Day 7",sub:"All exercises available",color:"#F5C518",groups:ALL_GROUPS},
-    },
-  },
-};
-
+const ALL_EXERCISES = [...new Set(Object.values(EXERCISE_BANK).flat())].sort();
 const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
-
-// Get day meta from user's active split
-function getSplitDay(splitKey, day) {
-  const split = WORKOUT_SPLITS[splitKey] || WORKOUT_SPLITS.ppl;
-  return split.days[day] || { label:day, sub:"", color:"#1560E8", groups:ALL_GROUPS };
-}
 const TIME_FILTERS = ["Daily","Weekly","Monthly","Yearly"];
 const PLATES = [20, 15, 10, 5, 2.5, 1.25]; // kg per side (standard)
 const BAR_WEIGHT = 20; // kg
@@ -305,6 +238,16 @@ function getSuggestion(lastSets) {
 }
 
 // ─── Global CSS ───────────────────────────────────────────────────────────────
+const mkCSS = (light) => `
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{background:${light?"#F4F6FB":T.bg};color:${light?"#111827":T.text};font-family:-apple-system,'Inter',BlinkMacSystemFont,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased}
+  input,button,textarea{font-family:inherit}
+  input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+  ::-webkit-scrollbar{width:4px;height:4px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:${light?"#CBD5E1":T.border};border-radius:4px}
+  ::placeholder{color:${light?"#9CA3AF":T.muted}}
+`;
 
 // ─── Reusable UI ─────────────────────────────────────────────────────────────
 function Pill({ label, active, color=T.blue, onClick }) {
@@ -1076,7 +1019,6 @@ function LogView({ currentUser, editingSession, onEditDone }) {
   const [notes, setNotes]     = useState(()=>editingSession?.notes||"");
   const [showPicker, setShowPicker]= useState(false);
   const [pickerQuery, setPickerQuery] = useState("");
-  const [pickerGroup, setPickerGroup] = useState("all");
   const [showNotes, setShowNotes]  = useState(false);
   const [saved, setSaved]     = useState(false);
   const [prHit, setPrHit]     = useState([]);
@@ -1095,8 +1037,7 @@ function LogView({ currentUser, editingSession, onEditDone }) {
     }
   },[editingSession?.id]);
 
-  const activeSplit = WORKOUT_SPLITS[S.get(`wt_split_${currentUser.id}`,"ppl")];
-  const meta     = activeSplit.days[day] || Object.values(WORKOUT_SPLITS.ppl.days)[0];
+  const meta     = SCHEDULE[day];
   const sessions = S.get("wt_sessions",[]);
   const lastSame = useMemo(()=>{
     const refDate = isEditing?editingSession.date:todayISO();
@@ -1262,7 +1203,7 @@ function LogView({ currentUser, editingSession, onEditDone }) {
       })}
 
       {/* Add exercise picker */}
-      <motion.button onClick={()=>{setShowPicker(p=>!p); setPickerQuery(""); setPickerGroup("all");}} whileTap={{scale:0.97}} style={{
+      <motion.button onClick={()=>{setShowPicker(p=>!p); setPickerQuery("");}} whileTap={{scale:0.97}} style={{
         width:"100%", background:"none", border:`1.5px dashed ${meta.color}55`, color:meta.color,
         borderRadius:12, padding:"12px 0", fontSize:13, cursor:"pointer",
         fontWeight:600, marginBottom:12, display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}>
@@ -1273,64 +1214,40 @@ function LogView({ currentUser, editingSession, onEditDone }) {
       <AnimatePresence>
         {showPicker && (() => {
           const q = pickerQuery.trim().toLowerCase();
-          // Get exercises for current split day groups (suggested), or all if searching
-          const splitGroups = meta.groups || ALL_GROUPS;
-          const suggestedPool = splitGroups.flatMap(g =>
-            [...(EXERCISE_BANK_ALL[g]?.machines||[]),...(EXERCISE_BANK_ALL[g]?.cables||[]),
-             ...(EXERCISE_BANK_ALL[g]?.dumbbells||[]),...(EXERCISE_BANK_ALL[g]?.barbells||[]),...(EXERCISE_BANK_ALL[g]?.bodyweight||[])]
-          );
-          const activeGroup = pickerGroup === "all" ? null : BODY_PART_GROUPS.find(g=>g.key===pickerGroup);
-          const poolForGroup = activeGroup ? activeGroup.exercises : suggestedPool;
-          const searchResults = q ? ALL_EXERCISES.filter(ex=>ex.toLowerCase().includes(q)) : poolForGroup;
-          const recentForView = recentEx.filter(ex=>!selected.includes(ex));
-
+          const dayPool = EXERCISE_BANK[day];
+          // Searching: search ALL exercises across every day. Empty query: just show day's pool.
+          const searchResults = q
+            ? ALL_EXERCISES.filter(ex => ex.toLowerCase().includes(q))
+            : dayPool;
+          const recentForView = recentEx.filter(ex => !selected.includes(ex));
           return (
-            <motion.div initial={{opacity:0,height:0}} animate={{opacity:1,height:"auto"}} exit={{opacity:0,height:0}}
-              style={{overflow:"hidden",marginBottom:16}}>
+            <motion.div initial={{opacity:0,height:0}} animate={{opacity:1,height:"auto"}} exit={{opacity:0,height:0}} style={{overflow:"hidden",marginBottom:16}}>
               <Card style={{padding:14}}>
-                {/* Search */}
-                <div style={{position:"relative",marginBottom:12}}>
-                  <Input value={pickerQuery} onChange={e=>setPickerQuery(e.target.value)}
-                    placeholder="Search 400+ exercises by name…" style={{paddingLeft:38}}/>
-                  <div style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)"}}>
+                {/* Search input */}
+                <div style={{ position:"relative", marginBottom:14 }}>
+                  <Input
+                    value={pickerQuery}
+                    onChange={e=>setPickerQuery(e.target.value)}
+                    placeholder="Type to search any exercise…"
+                    style={{ paddingLeft:38 }}
+                  />
+                  <div style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)" }}>
                     <Icon name="filter" size={14} color={T.muted}/>
                   </div>
                 </div>
 
-                {/* Body part filter tabs */}
-                {!q && (
-                  <div style={{display:"flex",gap:5,overflowX:"auto",marginBottom:12,scrollbarWidth:"none",paddingBottom:4}}>
-                    <motion.button whileTap={{scale:0.93}} onClick={()=>setPickerGroup("all")} style={{
-                      flexShrink:0, background:pickerGroup==="all"?meta.color:T.cardHi,
-                      border:pickerGroup==="all"?"none":`1px solid ${T.border}`,
-                      color:pickerGroup==="all"?(meta.color===T.yellow?T.bg:"#fff"):T.muted,
-                      borderRadius:20,padding:"4px 12px",fontSize:11,cursor:"pointer",fontWeight:700 }}>
-                      Today's Split
-                    </motion.button>
-                    {BODY_PART_GROUPS.map(g=>(
-                      <motion.button key={g.key} whileTap={{scale:0.93}} onClick={()=>setPickerGroup(g.key)} style={{
-                        flexShrink:0, background:pickerGroup===g.key?meta.color:T.cardHi,
-                        border:pickerGroup===g.key?"none":`1px solid ${T.border}`,
-                        color:pickerGroup===g.key?(meta.color===T.yellow?T.bg:"#fff"):T.muted,
-                        borderRadius:20,padding:"4px 12px",fontSize:11,cursor:"pointer",fontWeight:pickerGroup===g.key?700:400 }}>
-                        {g.label}
-                      </motion.button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Recent */}
-                {!q && recentForView.length>0 && (
-                  <div style={{marginBottom:12}}>
-                    <div style={{fontSize:10,color:T.muted,marginBottom:6,letterSpacing:"0.06em",display:"flex",alignItems:"center",gap:5}}>
+                {/* Recent exercises — shown only when not actively searching */}
+                {!q && recentForView.length > 0 && (
+                  <div style={{ marginBottom:16 }}>
+                    <div style={{ fontSize:11, color:T.muted, marginBottom:8, letterSpacing:"0.06em", display:"flex", alignItems:"center", gap:6 }}>
                       <Icon name="history" size={11} color={T.muted}/> RECENT
                     </div>
-                    <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-                      {recentForView.slice(0,8).map(ex=>(
+                    <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                      {recentForView.map(ex=>(
                         <motion.button key={ex} onClick={()=>toggleEx(ex)} whileTap={{scale:0.93}} style={{
-                          background:T.cardHi,border:`1px solid ${meta.color}44`,
-                          color:meta.color,borderRadius:20,padding:"4px 12px",fontSize:11,
-                          cursor:"pointer",fontWeight:500,display:"flex",alignItems:"center",gap:4}}>
+                          background:T.cardHi, border:`1px solid ${meta.color}44`,
+                          color:meta.color, borderRadius:20, padding:"5px 13px", fontSize:12,
+                          cursor:"pointer", fontWeight:500, display:"flex", alignItems:"center", gap:5 }}>
                           <Icon name="clone" size={10} color={meta.color}/>{ex}
                         </motion.button>
                       ))}
@@ -1338,29 +1255,26 @@ function LogView({ currentUser, editingSession, onEditDone }) {
                   </div>
                 )}
 
-                {/* Count label */}
-                <div style={{fontSize:10,color:T.muted,marginBottom:8,letterSpacing:"0.06em"}}>
-                  {q ? `${searchResults.length} RESULT${searchResults.length!==1?"S":""}` :
-                   pickerGroup==="all" ? `${meta.label.toUpperCase()} · ${searchResults.length} EXERCISES` :
-                   `${(activeGroup?.label||"").toUpperCase()} · ${searchResults.length} EXERCISES`}
+                {/* Results list */}
+                <div style={{ fontSize:11, color:T.muted, marginBottom:10, letterSpacing:"0.06em" }}>
+                  {q ? `${searchResults.length} RESULT${searchResults.length!==1?"S":""}` : `${meta.label.toUpperCase()} EXERCISES`}
                 </div>
-
-                {searchResults.length===0 ? (
-                  <div style={{textAlign:"center",color:T.muted,fontSize:13,padding:"16px 0"}}>
-                    No results for "{pickerQuery}"
+                {searchResults.length === 0 ? (
+                  <div style={{ textAlign:"center", color:T.muted, fontSize:13, padding:"16px 0" }}>
+                    No exercises found for "{pickerQuery}"
                   </div>
                 ) : (
-                  <div style={{display:"flex",flexWrap:"wrap",gap:6,maxHeight:260,overflowY:"auto"}}>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:6, maxHeight:280, overflowY:"auto"}}>
                     {searchResults.map(ex=>{
-                      const sel = selected.includes(ex);
-                      const inSplit = suggestedPool.includes(ex);
+                      const sel=selected.includes(ex);
+                      const inDayPool = dayPool.includes(ex);
                       return (
                         <motion.button key={ex} onClick={()=>toggleEx(ex)} whileTap={{scale:0.93}} style={{
-                          background:sel?meta.color:T.cardHi,
-                          border:sel?"none":`1px solid ${T.border}`,
-                          color:sel?(meta.color===T.yellow?T.bg:"#fff"):inSplit?T.text:T.muted,
-                          borderRadius:20,padding:"5px 13px",fontSize:12,cursor:"pointer",
-                          fontWeight:sel?700:400,boxShadow:sel?`0 0 10px ${meta.color}44`:"none"}}>
+                          background:sel?meta.color:T.cardHi, border:sel?"none":`1px solid ${T.border}`,
+                          color:sel?(meta.color===T.yellow?T.bg:"#fff"):(inDayPool?T.text:T.muted),
+                          borderRadius:20, padding:"5px 13px", fontSize:12, cursor:"pointer",
+                          fontWeight:sel?700:400, boxShadow:sel?`0 0 10px ${meta.color}44`:"none",
+                          opacity: (q && !inDayPool && !sel) ? 0.7 : 1 }}>
                           {ex}
                         </motion.button>
                       );
@@ -1372,7 +1286,6 @@ function LogView({ currentUser, editingSession, onEditDone }) {
           );
         })()}
       </AnimatePresence>
-
 
       {selected.length>0 && (
         <GlowBtn full color={saved?T.green:isEditing?T.yellow:T.blue} onClick={saveSession}>
@@ -2659,122 +2572,6 @@ function LogProgressView({ currentUser, editingSession, onEditDone }) {
   );
 }
 
-// ─── Settings View ────────────────────────────────────────────────────────────
-function SettingsView({ currentUser, isDark, onToggleTheme }) {
-  const splitKey = S.get(`wt_split_${currentUser.id}`,"ppl");
-  const [activeSplit, setActiveSplit] = useState(splitKey);
-  const [saved, setSaved] = useState(false);
-
-  function saveSplit(key) {
-    setActiveSplit(key);
-    S.set(`wt_split_${currentUser.id}`, key);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1800);
-  }
-
-  const split = WORKOUT_SPLITS[activeSplit];
-
-  return (
-    <div>
-      {/* Header */}
-      <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:20 }}>
-        <div style={{ width:38, height:38, borderRadius:12, background:`${T.blue}22`,
-          display:"flex", alignItems:"center", justifyContent:"center" }}>
-          <Icon name="filter" size={18} color={T.blue}/>
-        </div>
-        <div>
-          <div style={{ fontSize:16, fontWeight:800, color:T.text }}>Settings</div>
-          <div style={{ fontSize:11, color:T.muted }}>Split · Theme · Preferences</div>
-        </div>
-      </div>
-
-      {/* Theme toggle */}
-      <Card style={{ marginBottom:16, padding:"16px 18px" }}>
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <Icon name={isDark?"moon2":"sun"} size={18} color={T.blue}/>
-            <div>
-              <div style={{ fontSize:14, fontWeight:700, color:T.text }}>{isDark ? "Dark Mode" : "Light Mode"}</div>
-              <div style={{ fontSize:11, color:T.muted }}>Tap to switch theme</div>
-            </div>
-          </div>
-          <motion.button whileTap={{ scale:0.92 }} onClick={onToggleTheme} style={{
-            width:52, height:28, borderRadius:14,
-            background: isDark ? T.blue : T.border,
-            border:"none", cursor:"pointer", position:"relative",
-            boxShadow: isDark ? `0 0 12px ${T.blue}55` : "none",
-            transition:"background 0.3s"
-          }}>
-            <motion.div animate={{ x: isDark ? 26 : 2 }} transition={{ type:"spring", stiffness:500, damping:30 }}
-              style={{ width:24, height:24, borderRadius:12, background:"#fff",
-                position:"absolute", top:2, boxShadow:"0 1px 4px #0004" }}/>
-          </motion.button>
-        </div>
-      </Card>
-
-      {/* Workout split selector */}
-      <div style={{ fontSize:11, fontWeight:700, color:T.muted, letterSpacing:"0.08em", marginBottom:10 }}>
-        WORKOUT SPLIT
-      </div>
-
-      {Object.entries(WORKOUT_SPLITS).map(([key, s]) => (
-        <motion.div key={key} whileTap={{ scale:0.98 }} onClick={() => saveSplit(key)}
-          style={{ marginBottom:8, cursor:"pointer" }}>
-          <Card style={{
-            padding:"14px 16px",
-            border:`1px solid ${activeSplit===key ? T.blue : T.border}`,
-            background: activeSplit===key ? `${T.blue}11` : T.card,
-            boxShadow: activeSplit===key ? `0 0 0 1px ${T.blue}` : "none"
-          }}>
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-              <div>
-                <div style={{ fontWeight:700, fontSize:14, color:activeSplit===key?T.blue:T.text }}>{s.label}</div>
-                <div style={{ fontSize:11, color:T.muted, marginTop:3 }}>
-                  {Object.values(s.days).map(d=>d.label).slice(0,4).join(" · ")}…
-                </div>
-              </div>
-              {activeSplit===key && (
-                <div style={{ width:22, height:22, borderRadius:"50%", background:T.blue,
-                  display:"flex", alignItems:"center", justifyContent:"center" }}>
-                  <Icon name="check" size={12} color="#fff"/>
-                </div>
-              )}
-            </div>
-          </Card>
-        </motion.div>
-      ))}
-
-      {saved && (
-        <motion.div initial={{opacity:0,y:8}} animate={{opacity:1,y:0}}
-          style={{ textAlign:"center", color:T.green, fontSize:13, fontWeight:600, marginTop:12 }}>
-          ✓ Split saved!
-        </motion.div>
-      )}
-
-      {/* Split weekly preview */}
-      <div style={{ fontSize:11, fontWeight:700, color:T.muted, letterSpacing:"0.08em", margin:"20px 0 10px" }}>
-        WEEKLY SCHEDULE PREVIEW
-      </div>
-      <Card style={{ padding:"14px 16px" }}>
-        {DAYS.map((d,i) => {
-          const dm = split.days[d];
-          return (
-            <div key={d} style={{ display:"flex", alignItems:"center", gap:12,
-              paddingTop:i>0?10:0, marginTop:i>0?10:0, borderTop:i>0?`1px solid ${T.border}`:"none" }}>
-              <div style={{ width:28, fontSize:11, fontWeight:700, color:T.muted }}>{d.slice(0,3).toUpperCase()}</div>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:13, fontWeight:700, color:dm.color }}>{dm.label}</div>
-                <div style={{ fontSize:10, color:T.muted, marginTop:1 }}>{dm.sub}</div>
-              </div>
-              <div style={{ width:8, height:8, borderRadius:"50%", background:dm.color, flexShrink:0 }}/>
-            </div>
-          );
-        })}
-      </Card>
-    </div>
-  );
-}
-
 // ─── App Shell ────────────────────────────────────────────────────────────────
 export default function App() {
   useEffect(()=>{ initStorage(); },[]);
@@ -2789,10 +2586,10 @@ export default function App() {
   function handleEditDone()   { setEditingSession(null); }
 
   // Show login screen if no session saved
-  if (!currentUser) return (<><style>{mkCSS(!isDark)}</style><LoginScreen onLogin={handleLogin}/></>);
+  if (!currentUser) return (<><style>{mkCSS(false)}</style><LoginScreen onLogin={handleLogin}/></>);
 
   const today     = todayName();
-  const todayMeta = activeSplit.days[today] || Object.values(activeSplit.days)[0];
+  const todayMeta = SCHEDULE[today];
   const userSessions = S.get("wt_sessions",[]).filter(s=>s.userId===currentUser.id);
   const streak    = calcStreak(userSessions);
 
@@ -2830,12 +2627,7 @@ export default function App() {
                 )}
               </div>
             </div>
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <motion.button whileTap={{scale:0.88}} onClick={toggleTheme} style={{
-                background:T.cardHi,border:`1px solid ${T.border}`,
-                borderRadius:8,padding:"5px 7px",cursor:"pointer",display:"flex",alignItems:"center"}}>
-                <Icon name={isDark?"sun":"moon2"} size={14} color={T.muted}/>
-              </motion.button>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
               <div style={{display:"flex",alignItems:"center",gap:6}}>
                 <div style={{width:28,height:28,borderRadius:8,
                   background:currentUser.role==="admin"?`${T.yellow}22`:`${T.blue}22`,
@@ -2862,7 +2654,6 @@ export default function App() {
               {tab==="history"  && <HistoryView     currentUser={currentUser} onEditSession={handleEditSession}/>}
               {tab==="prs"      && <PRsView         currentUser={currentUser}/>}
               {tab==="wellness" && <WellnessView    currentUser={currentUser}/>}
-              {tab==="settings" && <SettingsView    currentUser={currentUser} isDark={isDark} onToggleTheme={toggleTheme}/>}
               {tab==="admin"&&currentUser.role==="admin" && <AdminPanel currentUser={currentUser}/>}
             </motion.div>
           </AnimatePresence>
