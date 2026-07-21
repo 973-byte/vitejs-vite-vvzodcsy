@@ -15,29 +15,57 @@ const DARK = {
   orange:  "#FF6B35", mode: "dark",
 };
 const LIGHT = {
-  blue:    "#1560E8", blueHi: "#0D3A8A", blueDim: "#DBEAFE",
-  yellow:  "#D4A000", yellowDim: "#FEF9E7",
-  bg:      "#F0F4FF", card: "#FFFFFF", cardHi: "#F8F9FF",
-  border:  "#D1D9F0", text: "#0F172A", muted: "#64748B",
-  danger:  "#DC2626", green: "#059669", purple: "#7C3AED",
+  blue:    "#1560E8", blueHi: "#1248B3", blueDim: "#DBEAFE",
+  yellow:  "#C8920A", yellowDim: "#FEF9E7",
+  bg:      "#F0F4FF", card: "#FFFFFF", cardHi: "#F4F6FF",
+  border:  "#CBD5E8", text: "#0F172A", muted: "#5A6885",
+  danger:  "#DC2626", green:  "#059669", purple: "#7C3AED",
   orange:  "#EA580C", mode: "light",
 };
 
-// Global theme ref — updated by App, read by all components
+// Global mutable ref — components read T.xxx directly
 let T = { ...DARK };
 function setTheme(isDark) { Object.assign(T, isDark ? DARK : LIGHT); }
 
-const mkCSS = (light) => `
+// Inject CSS variables onto :root so every inline style using T.xxx
+// gets the latest value after a forced re-render
+function applyThemeCSSVars(isDark) {
+  const theme = isDark ? DARK : LIGHT;
+  const root = document.documentElement;
+  Object.entries(theme).forEach(([k,v]) => {
+    if (typeof v === "string") root.style.setProperty(`--t-${k}`, v);
+  });
+  root.setAttribute("data-theme", isDark ? "dark" : "light");
+}
+
+const mkCSS = (light) => {
+  const t = light ? LIGHT : DARK;
+  return `
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  body{background:${light?LIGHT.bg:DARK.bg};color:${light?LIGHT.text:DARK.text};font-family:-apple-system,'Inter',BlinkMacSystemFont,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;transition:background 0.3s,color 0.3s}
-  input,button,textarea{font-family:inherit}
+  html[data-theme="light"] { color-scheme: light; }
+  html[data-theme="dark"]  { color-scheme: dark; }
+  body{background:${t.bg};color:${t.text};font-family:-apple-system,'Inter',BlinkMacSystemFont,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;}
+  input,button,textarea{font-family:inherit;color:${t.text};}
+  input,textarea{background:${t.cardHi};color:${t.text};}
+  input::placeholder,textarea::placeholder{color:${t.muted};}
   input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   ::-webkit-scrollbar{width:4px;height:4px}
   ::-webkit-scrollbar-track{background:transparent}
-  ::-webkit-scrollbar-thumb{background:${light?LIGHT.border:DARK.border};border-radius:4px}
-  ::placeholder{color:${light?LIGHT.muted:DARK.muted}}
-  *{transition:background-color 0.2s,border-color 0.2s,color 0.15s}
-`;
+  ::-webkit-scrollbar-thumb{background:${t.border};border-radius:4px}
+  /* Smooth theme transition */
+  *, *::before, *::after {
+    transition: background-color 0.25s ease, border-color 0.25s ease, color 0.15s ease, box-shadow 0.25s ease;
+  }
+  /* Chart text */
+  .recharts-text, .recharts-legend-item-text { fill: ${t.muted} !important; color: ${t.muted} !important; }
+  .recharts-cartesian-grid line { stroke: ${t.border} !important; }
+  .recharts-tooltip-wrapper .recharts-default-tooltip {
+    background: ${t.card} !important;
+    border: 1px solid ${t.border} !important;
+    border-radius: 8px !important;
+    color: ${t.text} !important;
+  }
+`;};
 
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
 const Icon = ({ name, size = 18, color = "currentColor", style = {} }) => {
@@ -345,7 +373,8 @@ function Input({ value, onChange, placeholder, type="text", style={}, onKeyDown 
   return (
     <input type={type} value={value} onChange={onChange} placeholder={placeholder} onKeyDown={onKeyDown} style={{
       background:T.cardHi, border:`1px solid ${T.border}`, borderRadius:10,
-      color:T.text, padding:"10px 14px", fontSize:14, width:"100%", outline:"none", ...style
+      color:T.text, padding:"10px 14px", fontSize:14, width:"100%", outline:"none",
+      fontFamily:"inherit", ...style
     }} />
   );
 }
@@ -539,12 +568,12 @@ function SetRow({ set, idx, onChange, onRemove }) {
       <input type="number" placeholder="kg" value={set.weight}
         onChange={e=>onChange(idx,"weight",e.target.value)} style={{
           width:64, padding:"7px 8px", borderRadius:8, border:`1px solid ${T.border}`,
-          background:T.cardHi, color:T.text, fontSize:14, textAlign:"center", outline:"none"}} />
+          background:T.cardHi, color:T.text, fontSize:14, textAlign:"center", outline:"none", fontFamily:"inherit"}} />
       <span style={{ color:T.muted, fontSize:13 }}>×</span>
       <input type="number" placeholder="reps" value={set.reps}
         onChange={e=>onChange(idx,"reps",e.target.value)} style={{
           width:64, padding:"7px 8px", borderRadius:8, border:`1px solid ${T.border}`,
-          background:T.cardHi, color:T.text, fontSize:14, textAlign:"center", outline:"none"}} />
+          background:T.cardHi, color:T.text, fontSize:14, textAlign:"center", outline:"none", fontFamily:"inherit"}} />
       <motion.button whileTap={{scale:0.85}} onClick={()=>onRemove(idx)} style={{ background:"none", border:"none", cursor:"pointer", padding:2 }}>
         <Icon name="close" size={13} color={T.muted} />
       </motion.button>
@@ -714,14 +743,14 @@ function LoginScreen({ onLogin }) {
               animate={{ opacity:1, y:0 }}
               transition={{ delay:0.7, duration:0.5, ease:"easeOut" }}
               style={{ textAlign:"center" }}>
-              <div style={{ fontSize:32, fontWeight:900, letterSpacing:"-1px", color:"#F0F2FF" }}>
+              <div style={{ fontSize:32, fontWeight:900, letterSpacing:"-1px", color:T.text }}>
                 Over<span style={{color:T.blue}}>load</span>
               </div>
               <motion.div
                 initial={{ opacity:0 }}
                 animate={{ opacity:1 }}
                 transition={{ delay:1.1, duration:0.4 }}
-                style={{ fontSize:13, color:"#4D6099", marginTop:6, letterSpacing:"0.08em", fontWeight:500 }}>
+                style={{ fontSize:13, color:T.muted, marginTop:6, letterSpacing:"0.08em", fontWeight:500 }}>
                 PROGRESSIVE TRAINING TRACKER
               </motion.div>
             </motion.div>
@@ -760,10 +789,10 @@ function LoginScreen({ onLogin }) {
                 filter:"drop-shadow(0 0 20px #1560E855)" }}>
                 <AppLogo size={64}/>
               </div>
-              <div style={{ fontSize:26, fontWeight:900, letterSpacing:"-0.5px", color:"#F0F2FF" }}>
+              <div style={{ fontSize:26, fontWeight:900, letterSpacing:"-0.5px", color:T.text }}>
                 Over<span style={{color:T.blue}}>load</span>
               </div>
-              <div style={{ color:"#3D5080", fontSize:12, marginTop:5, letterSpacing:"0.06em", fontWeight:500 }}>
+              <div style={{ color:T.muted, fontSize:12, marginTop:5, letterSpacing:"0.06em", fontWeight:500 }}>
                 SIGN IN TO CONTINUE
               </div>
             </motion.div>
@@ -774,46 +803,46 @@ function LoginScreen({ onLogin }) {
               animate={{ opacity:1, y:0 }}
               transition={{ delay:0.2, duration:0.35 }}
               style={{
-                background:"#080D1E",
-                border:`1px solid #1560E833`,
+                background:T.card,
+                border:`1px solid ${T.border}`,
                 borderRadius:18,
                 padding:"24px 22px",
                 boxShadow:`0 0 0 1px #1560E811, 0 24px 48px #00000088`
               }}>
 
-              <div style={{ fontSize:12, color:"#4D6099", marginBottom:6, fontWeight:600, letterSpacing:"0.04em" }}>USERNAME</div>
+              <div style={{ fontSize:12, color:T.muted, marginBottom:6, fontWeight:600, letterSpacing:"0.04em" }}>USERNAME</div>
               <input
                 value={username} onChange={e=>setUsername(e.target.value)}
                 onKeyDown={e=>e.key==="Enter"&&handle()}
                 placeholder="Enter username"
                 style={{
-                  width:"100%", background:"#040812",
-                  border:`1px solid #1560E833`,
-                  borderRadius:10, color:"#F0F2FF",
+                  width:"100%", background:T.cardHi,
+                  border:`1px solid ${T.border}`,
+                  borderRadius:10, color:T.text,
                   padding:"11px 14px", fontSize:14, outline:"none",
                   boxSizing:"border-box", fontFamily:"inherit",
                   transition:"border-color 0.2s"
                 }}
-                onFocus={e=>e.target.style.borderColor="#1560E8"}
-                onBlur={e=>e.target.style.borderColor="#1560E833"}
+                onFocus={e=>e.target.style.borderColor=T.blue}
+                onBlur={e=>e.target.style.borderColor=T.border}
               />
 
-              <div style={{ fontSize:12, color:"#4D6099", margin:"16px 0 6px", fontWeight:600, letterSpacing:"0.04em" }}>PASSWORD</div>
+              <div style={{ fontSize:12, color:T.muted, margin:"16px 0 6px", fontWeight:600, letterSpacing:"0.04em" }}>PASSWORD</div>
               <input
                 type="password"
                 value={password} onChange={e=>setPassword(e.target.value)}
                 onKeyDown={e=>e.key==="Enter"&&handle()}
                 placeholder="Enter password"
                 style={{
-                  width:"100%", background:"#040812",
-                  border:`1px solid #1560E833`,
-                  borderRadius:10, color:"#F0F2FF",
+                  width:"100%", background:T.cardHi,
+                  border:`1px solid ${T.border}`,
+                  borderRadius:10, color:T.text,
                   padding:"11px 14px", fontSize:14, outline:"none",
                   boxSizing:"border-box", fontFamily:"inherit",
                   transition:"border-color 0.2s"
                 }}
-                onFocus={e=>e.target.style.borderColor="#1560E8"}
-                onBlur={e=>e.target.style.borderColor="#1560E833"}
+                onFocus={e=>e.target.style.borderColor=T.blue}
+                onBlur={e=>e.target.style.borderColor=T.border}
               />
 
               {error && (
@@ -1495,7 +1524,7 @@ function ProgressView({ currentUser }) {
           <input type="number" value={bwInput} onChange={e=>setBwInput(e.target.value)}
             placeholder="e.g. 75.5" style={{
               flex:1, background:T.cardHi, border:`1px solid ${T.border}`, borderRadius:8,
-              color:T.text, padding:"8px 12px", fontSize:14, outline:"none"}}/>
+              color:T.text, padding:"8px 12px", fontSize:14, outline:"none", fontFamily:"inherit"}}/>
           <GlowBtn small color={bwSaved?T.green:T.green} onClick={saveBW}>
             <Icon name={bwSaved?"check":"plus"} size={14} color="#fff"/>
           </GlowBtn>
@@ -2195,9 +2224,9 @@ function SleepRecord({ entry, idx, onEdit, onDelete, qualityLabels, qualityColor
             ))}
           </div>
           <textarea value={n} onChange={e=>setN(e.target.value)} placeholder="Notes..."
-            style={{ width:"100%", background:T.card, border:`1px solid ${T.border}`,
+            style={{ width:"100%", background:T.cardHi, border:`1px solid ${T.border}`,
               borderRadius:8, color:T.text, padding:"8px 10px", fontSize:12,
-              outline:"none", resize:"none", minHeight:40, marginBottom:10 }}/>
+              outline:"none", resize:"none", minHeight:40, marginBottom:10, fontFamily:"inherit" }}/>
           <div style={{ display:"flex", gap:8 }}>
             <GlowBtn full color={T.blue} small onClick={save}>
               <Icon name="check" size={13} color="#fff"/> Save
@@ -2261,13 +2290,13 @@ function MealRecord({ meal, idx, onEdit, onDelete }) {
       {editing ? (
         <div style={{ background:T.cardHi, borderRadius:10, padding:12 }}>
           <input value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Meal description"
-            style={{ width:"100%", background:T.card, border:`1px solid ${T.border}`,
+            style={{ width:"100%", background:T.cardHi, border:`1px solid ${T.border}`,
               borderRadius:8, color:T.text, padding:"7px 10px", fontSize:13,
-              outline:"none", marginBottom:8 }}/>
+              outline:"none", marginBottom:8, fontFamily:"inherit" }}/>
           <div style={{ display:"flex", gap:8 }}>
             <input type="number" value={grams} onChange={e=>setGrams(e.target.value)} placeholder="Protein (g)"
-              style={{ flex:1, background:T.card, border:`1px solid ${T.border}`,
-                borderRadius:8, color:T.text, padding:"7px 10px", fontSize:13, outline:"none" }}/>
+              style={{ flex:1, background:T.cardHi, border:`1px solid ${T.border}`,
+                borderRadius:8, color:T.text, padding:"7px 10px", fontSize:13, outline:"none", fontFamily:"inherit" }}/>
             <GlowBtn color={T.green} small onClick={save}>
               <Icon name="check" size={13} color="#fff"/>
             </GlowBtn>
@@ -2532,7 +2561,7 @@ function WellnessView({ currentUser }) {
             <textarea value={sleepNote} onChange={e=>setSleepNote(e.target.value)}
               placeholder="Notes — e.g. woke up twice, felt rested..."
               style={{ width:"100%", background:T.cardHi, border:`1px solid ${T.border}`, borderRadius:10,
-                color:T.text, padding:"10px 14px", fontSize:13, outline:"none", resize:"none", minHeight:52, marginBottom:12 }}/>
+                color:T.text, padding:"10px 14px", fontSize:13, outline:"none", resize:"none", minHeight:52, marginBottom:12, fontFamily:"inherit" }}/>
 
             <GlowBtn full color={sleepSaved?T.green:T.blue} onClick={saveSleepManual}>
               <Icon name={sleepSaved?"check":"bed"} size={15} color="#fff"/>
@@ -2953,7 +2982,11 @@ export default function App() {
   const [editingSession, setEditingSession] = useState(null);
   const [isDark, setIsDark]           = useState(()=>S.get("wt_theme","dark")==="dark");
 
-  useEffect(()=>{ setTheme(isDark); S.set("wt_theme",isDark?"dark":"light"); },[isDark]);
+  useEffect(()=>{
+    setTheme(isDark);
+    applyThemeCSSVars(isDark);
+    S.set("wt_theme", isDark?"dark":"light");
+  },[isDark]);
   function toggleTheme() { setIsDark(p=>!p); }
 
   function handleLogin(user)  { setCurrentUser(user); S.set("wt_session",user); }
@@ -2982,7 +3015,7 @@ export default function App() {
   return (
     <>
       <style>{mkCSS(!isDark)}</style>
-      <div style={{maxWidth:480,margin:"0 auto",minHeight:"100dvh",background:T.bg}}>
+      <div key={String(isDark)} style={{maxWidth:480,margin:"0 auto",minHeight:"100dvh",background:T.bg}}>
 
         {/* Header */}
         <div style={{background:T.card,borderBottom:`1px solid ${T.border}`,
