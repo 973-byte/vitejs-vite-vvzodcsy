@@ -17,6 +17,7 @@ const T = {
 
 const GLOBAL_CSS = `
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#040D2E;margin:0;padding:0}
   body{background:#0B0D1A;color:#F0F2FF;font-family:-apple-system,'Inter',BlinkMacSystemFont,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased}
   input,button,textarea{font-family:inherit;color:#F0F2FF}
   input,textarea{background:#181D35;color:#F0F2FF}
@@ -639,11 +640,11 @@ function LoginScreen({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError]       = useState("");
-  const [phase, setPhase]       = useState("splash"); // splash → form
+  const [phase, setPhase]       = useState("splash");
 
-  // After splash animation, switch to login form
+  // Splash stays minimum 2.5 seconds
   useEffect(() => {
-    const t = setTimeout(() => setPhase("form"), 2200);
+    const t = setTimeout(() => setPhase("form"), 2500);
     return () => clearTimeout(t);
   }, []);
 
@@ -653,28 +654,39 @@ function LoginScreen({ onLogin }) {
     onLogin(u);
   }
 
-  const darkBlueBg = "#040812";
+  // Inject body bg immediately to prevent white flash
+  useEffect(() => {
+    document.body.style.background = "#040D2E";
+    document.body.style.margin = "0";
+    return () => { document.body.style.background = "#0B0D1A"; };
+  }, []);
 
   return (
-    <div style={{ minHeight:"100dvh", display:"flex", alignItems:"center",
-      justifyContent:"center", background: darkBlueBg, padding:24, position:"relative", overflow:"hidden" }}>
+    <div style={{
+      minHeight:"100dvh", display:"flex", alignItems:"center",
+      justifyContent:"center", padding:24, position:"relative", overflow:"hidden",
+      background:"linear-gradient(160deg, #040D2E 0%, #081560 50%, #040D2E 100%)",
+    }}>
 
-      {/* Background rings — dark blue atmosphere */}
-      <div style={{ position:"absolute", inset:0, pointerEvents:"none" }}>
-        {[600,450,300].map((s,i)=>(
+      {/* Animated background glow blobs */}
+      <div style={{ position:"absolute", inset:0, pointerEvents:"none", overflow:"hidden" }}>
+        <motion.div animate={{ scale:[1,1.15,1], opacity:[0.5,0.8,0.5] }}
+          transition={{ duration:4, repeat:Infinity, ease:"easeInOut" }}
+          style={{ position:"absolute", top:"20%", left:"50%", transform:"translate(-50%,-50%)",
+            width:400, height:400, borderRadius:"50%",
+            background:"radial-gradient(circle, #1560E833 0%, transparent 70%)" }}/>
+        <motion.div animate={{ scale:[1,1.2,1], opacity:[0.3,0.6,0.3] }}
+          transition={{ duration:5, repeat:Infinity, ease:"easeInOut", delay:1 }}
+          style={{ position:"absolute", bottom:"10%", left:"30%",
+            width:300, height:300, borderRadius:"50%",
+            background:"radial-gradient(circle, #1560E822 0%, transparent 70%)" }}/>
+        {/* Subtle grid lines */}
+        {[...Array(8)].map((_,i)=>(
           <div key={i} style={{
-            position:"absolute", top:"50%", left:"50%",
-            width:s, height:s, borderRadius:"50%",
-            border:`1px solid #1560E8${["0D","08","05"][i]}`,
-            transform:"translate(-50%,-50%)",
+            position:"absolute", left:0, right:0, height:"1px",
+            top:`${(i+1)*12.5}%`, background:"#1560E808"
           }}/>
         ))}
-        {/* Subtle radial glow */}
-        <div style={{
-          position:"absolute", top:"35%", left:"50%", transform:"translate(-50%,-50%)",
-          width:320, height:320, borderRadius:"50%",
-          background:"radial-gradient(circle, #1560E80A 0%, transparent 70%)",
-        }}/>
       </div>
 
       <AnimatePresence mode="wait">
@@ -684,51 +696,68 @@ function LoginScreen({ onLogin }) {
           <motion.div key="splash"
             initial={{ opacity:0 }}
             animate={{ opacity:1 }}
-            exit={{ opacity:0, scale:0.9 }}
-            transition={{ duration:0.3 }}
-            style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:24 }}>
+            exit={{ opacity:0, y:-20 }}
+            transition={{ duration:0.4 }}
+            style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:20, position:"relative", zIndex:1 }}>
 
-            {/* Logo — zoom in, breathe, zoom out */}
+            {/* Logo — pop in with bounce */}
             <motion.div
               initial={{ scale:0, opacity:0 }}
-              animate={{
-                scale:  [0, 1.15, 1, 1.06, 1],
-                opacity:[0, 1,    1, 1,    1],
-              }}
-              transition={{ duration:1.2, ease:"easeOut", times:[0,0.4,0.6,0.8,1] }}
-              style={{ filter:"drop-shadow(0 0 32px #1560E855)" }}>
-              <AppLogo size={96}/>
+              animate={{ scale:[0,1.2,0.95,1.08,1], opacity:[0,1,1,1,1] }}
+              transition={{ duration:1.0, ease:"easeOut", times:[0,0.35,0.55,0.75,1] }}
+              style={{ filter:"drop-shadow(0 0 40px #4D8EFF88)" }}>
+              {/* White logo box */}
+              <div style={{
+                width:96, height:96, borderRadius:24,
+                background:"#fff",
+                display:"flex", alignItems:"center", justifyContent:"center",
+                boxShadow:"0 0 60px #1560E866, 0 0 20px #4D8EFF44"
+              }}>
+                <svg width={64} height={64} viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="logograd" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#0D3A8A"/>
+                      <stop offset="100%" stopColor="#1560E8"/>
+                    </linearGradient>
+                  </defs>
+                  <g fill="url(#logograd)" transform="translate(256,256) scale(0.7) translate(-256,-256)">
+                    <path d="m476.69 340.78h11.31v42.12h-11.31z"/>
+                    <path d="m24 340.78h11.31v42.12h-11.31z"/>
+                    <path d="m64.96 310.85c-7.53 0-13.66 6.12-13.66 13.63v8.31 58.11 8.31c0 7.52 6.13 13.63 13.66 13.63h23.98v-101.99z"/>
+                    <path d="m387.99 91.69c-31.06-29.93-78.3-19.1-126.35 28.96-1.5 1.5-3.53 2.35-5.65 2.35s-4.16-.85-5.66-2.35c-30.12-30.12-59.92-45.62-85.61-45.62-15.3 0-29.13 5.49-40.72 16.65-26.89 25.91-33.91 79.71-3.07 112.93l135.06 145.48 135.08-145.48c30.84-33.22 23.81-87.02-3.08-112.92z"/>
+                    <path d="m460.7 323.77v76.14c0 7.13-5.81 12.93-12.95 12.93h-24.69v-101.99h24.69c7.14 0 12.95 5.8 12.95 12.92z"/>
+                    <path d="m142.57 293.22c0-3.55-2.89-6.43-6.43-6.43h-24.77c-3.55 0-6.43 2.89-6.43 6.43v9.64 117.98 9.64c0 3.55 2.89 6.43 6.43 6.43h24.77c3.55 0 6.43-2.89 6.43-6.43v-39.58-58.11z"/>
+                    <path d="m353.44 340.78v42.12h-194.88v-42.12h66.97l24.6 26.5c1.51 1.63 3.63 2.56 5.86 2.56 2.22 0 4.34-.93 5.85-2.56l24.61-26.5z"/>
+                    <path d="m407.07 293.22v137.25c0 3.55-2.9 6.43-6.46 6.43h-24.75c-3.55 0-6.43-2.88-6.43-6.43v-137.25c0-3.55 2.88-6.44 6.43-6.44h24.75c3.56 0 6.46 2.89 6.46 6.44z"/>
+                  </g>
+                </svg>
+              </div>
             </motion.div>
 
-            {/* Wordmark — slides up after logo */}
+            {/* App name */}
             <motion.div
-              initial={{ opacity:0, y:16 }}
+              initial={{ opacity:0, y:20 }}
               animate={{ opacity:1, y:0 }}
-              transition={{ delay:0.7, duration:0.5, ease:"easeOut" }}
+              transition={{ delay:0.6, duration:0.5 }}
               style={{ textAlign:"center" }}>
-              <div style={{ fontSize:32, fontWeight:900, letterSpacing:"-1px", color:T.text }}>
-                Over<span style={{color:T.blue}}>load</span>
+              <div style={{ fontSize:38, fontWeight:900, letterSpacing:"-1.5px", color:"#ffffff",
+                textShadow:"0 0 40px #1560E888" }}>
+                Overload
               </div>
-              <motion.div
-                initial={{ opacity:0 }}
-                animate={{ opacity:1 }}
-                transition={{ delay:1.1, duration:0.4 }}
-                style={{ fontSize:13, color:T.muted, marginTop:6, letterSpacing:"0.08em", fontWeight:500 }}>
+              <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:1.0 }}
+                style={{ fontSize:12, color:"#4D8EFF", marginTop:6, letterSpacing:"0.18em", fontWeight:600 }}>
                 PROGRESSIVE TRAINING TRACKER
               </motion.div>
             </motion.div>
 
-            {/* Loading dots */}
-            <motion.div
-              initial={{ opacity:0 }}
-              animate={{ opacity:1 }}
-              transition={{ delay:1.4 }}
-              style={{ display:"flex", gap:6, marginTop:8 }}>
-              {[0,1,2].map(i => (
+            {/* Pulsing dots */}
+            <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:1.3 }}
+              style={{ display:"flex", gap:8, marginTop:12 }}>
+              {[0,1,2].map(i=>(
                 <motion.div key={i}
-                  animate={{ scale:[1,1.4,1], opacity:[0.3,1,0.3] }}
-                  transition={{ duration:0.8, repeat:Infinity, delay:i*0.18, ease:"easeInOut" }}
-                  style={{ width:6, height:6, borderRadius:"50%", background:T.blue }}/>
+                  animate={{ scale:[1,1.5,1], opacity:[0.4,1,0.4] }}
+                  transition={{ duration:0.9, repeat:Infinity, delay:i*0.2, ease:"easeInOut" }}
+                  style={{ width:7, height:7, borderRadius:"50%", background:"#4D8EFF" }}/>
               ))}
             </motion.div>
           </motion.div>
