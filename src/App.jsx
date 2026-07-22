@@ -5,67 +5,30 @@ import {
   CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine
 } from "recharts";
 
-// ─── Theme system ─────────────────────────────────────────────────────────────
-const DARK = {
+// ─── Design tokens (dark mode only) ──────────────────────────────────────────
+const T = {
   blue:    "#1560E8", blueHi: "#4D8EFF", blueDim: "#0D3A8A",
   yellow:  "#F5C518", yellowDim: "#3A3100",
   bg:      "#0B0D1A", card: "#12152B", cardHi: "#181D35",
   border:  "#1E2340", text: "#F0F2FF", muted: "#6B7299",
   danger:  "#E84545", green: "#22C97A", purple: "#9B4DFF",
-  orange:  "#FF6B35", mode: "dark",
-};
-const LIGHT = {
-  blue:    "#1560E8", blueHi: "#1248B3", blueDim: "#DBEAFE",
-  yellow:  "#C8920A", yellowDim: "#FEF9E7",
-  bg:      "#F0F4FF", card: "#FFFFFF", cardHi: "#F4F6FF",
-  border:  "#CBD5E8", text: "#0F172A", muted: "#5A6885",
-  danger:  "#DC2626", green:  "#059669", purple: "#7C3AED",
-  orange:  "#EA580C", mode: "light",
+  orange:  "#FF6B35",
 };
 
-// Global mutable ref — components read T.xxx directly
-let T = { ...DARK };
-function setTheme(isDark) { Object.assign(T, isDark ? DARK : LIGHT); }
-
-// Inject CSS variables onto :root so every inline style using T.xxx
-// gets the latest value after a forced re-render
-function applyThemeCSSVars(isDark) {
-  const theme = isDark ? DARK : LIGHT;
-  const root = document.documentElement;
-  Object.entries(theme).forEach(([k,v]) => {
-    if (typeof v === "string") root.style.setProperty(`--t-${k}`, v);
-  });
-  root.setAttribute("data-theme", isDark ? "dark" : "light");
-}
-
-const mkCSS = (light) => {
-  const t = light ? LIGHT : DARK;
-  return `
+const GLOBAL_CSS = `
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  html[data-theme="light"] { color-scheme: light; }
-  html[data-theme="dark"]  { color-scheme: dark; }
-  body{background:${t.bg};color:${t.text};font-family:-apple-system,'Inter',BlinkMacSystemFont,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;}
-  input,button,textarea{font-family:inherit;color:${t.text};}
-  input,textarea{background:${t.cardHi};color:${t.text};}
-  input::placeholder,textarea::placeholder{color:${t.muted};}
+  body{background:#0B0D1A;color:#F0F2FF;font-family:-apple-system,'Inter',BlinkMacSystemFont,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased}
+  input,button,textarea{font-family:inherit;color:#F0F2FF}
+  input,textarea{background:#181D35;color:#F0F2FF}
+  input::placeholder,textarea::placeholder{color:#6B7299}
   input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   ::-webkit-scrollbar{width:4px;height:4px}
   ::-webkit-scrollbar-track{background:transparent}
-  ::-webkit-scrollbar-thumb{background:${t.border};border-radius:4px}
-  /* Smooth theme transition */
-  *, *::before, *::after {
-    transition: background-color 0.25s ease, border-color 0.25s ease, color 0.15s ease, box-shadow 0.25s ease;
-  }
-  /* Chart text */
-  .recharts-text, .recharts-legend-item-text { fill: ${t.muted} !important; color: ${t.muted} !important; }
-  .recharts-cartesian-grid line { stroke: ${t.border} !important; }
-  .recharts-tooltip-wrapper .recharts-default-tooltip {
-    background: ${t.card} !important;
-    border: 1px solid ${t.border} !important;
-    border-radius: 8px !important;
-    color: ${t.text} !important;
-  }
-`;};
+  ::-webkit-scrollbar-thumb{background:#1E2340;border-radius:4px}
+  .recharts-text,.recharts-legend-item-text{fill:#6B7299 !important;color:#6B7299 !important}
+  .recharts-cartesian-grid line{stroke:#1E2340 !important}
+  .recharts-tooltip-wrapper .recharts-default-tooltip{background:#12152B !important;border:1px solid #1E2340 !important;border-radius:8px !important;color:#F0F2FF !important}
+`;
 
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
 const Icon = ({ name, size = 18, color = "currentColor", style = {} }) => {
@@ -2858,7 +2821,7 @@ function LogProgressView({ currentUser, editingSession, onEditDone }) {
 }
 
 // ─── Settings View ────────────────────────────────────────────────────────────
-function SettingsView({ currentUser, isDark, onToggleTheme }) {
+function SettingsView({ currentUser }) {
   const splitKey = S.get(`wt_split_${currentUser.id}`,"ppl");
   const [activeSplit, setActiveSplit] = useState(splitKey);
   const [saved, setSaved] = useState(false);
@@ -2885,30 +2848,6 @@ function SettingsView({ currentUser, isDark, onToggleTheme }) {
           <div style={{ fontSize:11, color:T.muted }}>Split · Theme · Preferences</div>
         </div>
       </div>
-
-      {/* Theme toggle */}
-      <Card style={{ marginBottom:16, padding:"16px 18px" }}>
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <Icon name={isDark?"moon2":"sun"} size={18} color={T.blue}/>
-            <div>
-              <div style={{ fontSize:14, fontWeight:700, color:T.text }}>{isDark ? "Dark Mode" : "Light Mode"}</div>
-              <div style={{ fontSize:11, color:T.muted }}>Tap to switch theme</div>
-            </div>
-          </div>
-          <motion.button whileTap={{ scale:0.92 }} onClick={onToggleTheme} style={{
-            width:52, height:28, borderRadius:14,
-            background: isDark ? T.blue : T.border,
-            border:"none", cursor:"pointer", position:"relative",
-            boxShadow: isDark ? `0 0 12px ${T.blue}55` : "none",
-            transition:"background 0.3s"
-          }}>
-            <motion.div animate={{ x: isDark ? 26 : 2 }} transition={{ type:"spring", stiffness:500, damping:30 }}
-              style={{ width:24, height:24, borderRadius:12, background:"#fff",
-                position:"absolute", top:2, boxShadow:"0 1px 4px #0004" }}/>
-          </motion.button>
-        </div>
-      </Card>
 
       {/* Workout split selector */}
       <div style={{ fontSize:11, fontWeight:700, color:T.muted, letterSpacing:"0.08em", marginBottom:10 }}>
@@ -2980,21 +2919,12 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(()=>S.get("wt_session",null));
   const [tab,         setTab]         = useState("train");
   const [editingSession, setEditingSession] = useState(null);
-  const [isDark, setIsDark]           = useState(()=>S.get("wt_theme","dark")==="dark");
-
-  useEffect(()=>{
-    setTheme(isDark);
-    applyThemeCSSVars(isDark);
-    S.set("wt_theme", isDark?"dark":"light");
-  },[isDark]);
-  function toggleTheme() { setIsDark(p=>!p); }
-
   function handleLogin(user)  { setCurrentUser(user); S.set("wt_session",user); }
   function handleLogout()     { setCurrentUser(null); S.set("wt_session",null); setEditingSession(null); }
   function handleEditSession(session) { setEditingSession(session); setTab("train"); }
   function handleEditDone()   { setEditingSession(null); }
 
-  if (!currentUser) return (<><style>{mkCSS(!isDark)}</style><LoginScreen onLogin={handleLogin}/></>);
+  if (!currentUser) return (<><style>{GLOBAL_CSS}</style><LoginScreen onLogin={handleLogin}/></>);
 
   const today       = todayName();
   const splitKey    = S.get(`wt_split_${currentUser.id}`,"ppl");
@@ -3014,8 +2944,8 @@ export default function App() {
 
   return (
     <>
-      <style>{mkCSS(!isDark)}</style>
-      <div key={String(isDark)} style={{maxWidth:480,margin:"0 auto",minHeight:"100dvh",background:T.bg}}>
+      <style>{GLOBAL_CSS}</style>
+      <div style={{maxWidth:480,margin:"0 auto",minHeight:"100dvh",background:T.bg}}>
 
         {/* Header */}
         <div style={{background:T.card,borderBottom:`1px solid ${T.border}`,
@@ -3038,11 +2968,6 @@ export default function App() {
               </div>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <motion.button whileTap={{scale:0.88}} onClick={toggleTheme} style={{
-                background:T.cardHi,border:`1px solid ${T.border}`,
-                borderRadius:8,padding:"5px 7px",cursor:"pointer",display:"flex",alignItems:"center"}}>
-                <Icon name={isDark?"sun":"moon2"} size={14} color={T.muted}/>
-              </motion.button>
               <div style={{display:"flex",alignItems:"center",gap:6}}>
                 <div style={{width:28,height:28,borderRadius:8,
                   background:currentUser.role==="admin"?`${T.yellow}22`:`${T.blue}22`,
@@ -3068,7 +2993,7 @@ export default function App() {
               {tab==="streak"   && <StreakView      currentUser={currentUser}/>}
               {tab==="records"  && <HistoryPRsView  currentUser={currentUser} onEditSession={handleEditSession}/>}
               {tab==="wellness" && <WellnessView    currentUser={currentUser}/>}
-              {tab==="settings" && <SettingsView    currentUser={currentUser} isDark={isDark} onToggleTheme={toggleTheme}/>}
+              {tab==="settings" && <SettingsView    currentUser={currentUser}/>}
               {tab==="admin"&&currentUser.role==="admin" && <AdminPanel currentUser={currentUser}/>}
             </motion.div>
           </AnimatePresence>
