@@ -642,7 +642,6 @@ function LoginScreen({ onLogin }) {
   const [error, setError]       = useState("");
   const [phase, setPhase]       = useState("splash");
 
-  // Splash stays minimum 2.5 seconds
   useEffect(() => {
     const t = setTimeout(() => setPhase("form"), 2500);
     return () => clearTimeout(t);
@@ -654,188 +653,139 @@ function LoginScreen({ onLogin }) {
     onLogin(u);
   }
 
-  // Inject body bg immediately to prevent white flash
-  useEffect(() => {
-    document.body.style.background = "#040D2E";
-    document.body.style.margin = "0";
-    return () => { document.body.style.background = "#0B0D1A"; };
-  }, []);
-
   return (
     <div style={{
       minHeight:"100dvh", display:"flex", alignItems:"center",
       justifyContent:"center", padding:24, position:"relative", overflow:"hidden",
-      background:"linear-gradient(160deg, #040D2E 0%, #081560 50%, #040D2E 100%)",
+      background:"linear-gradient(160deg, #040D2E 0%, #081A6B 50%, #040D2E 100%)",
     }}>
 
-      {/* Animated background glow blobs */}
+      {/* Animated glow blobs */}
       <div style={{ position:"absolute", inset:0, pointerEvents:"none", overflow:"hidden" }}>
-        <motion.div animate={{ scale:[1,1.15,1], opacity:[0.5,0.8,0.5] }}
-          transition={{ duration:4, repeat:Infinity, ease:"easeInOut" }}
-          style={{ position:"absolute", top:"20%", left:"50%", transform:"translate(-50%,-50%)",
-            width:400, height:400, borderRadius:"50%",
-            background:"radial-gradient(circle, #1560E833 0%, transparent 70%)" }}/>
-        <motion.div animate={{ scale:[1,1.2,1], opacity:[0.3,0.6,0.3] }}
-          transition={{ duration:5, repeat:Infinity, ease:"easeInOut", delay:1 }}
-          style={{ position:"absolute", bottom:"10%", left:"30%",
-            width:300, height:300, borderRadius:"50%",
-            background:"radial-gradient(circle, #1560E822 0%, transparent 70%)" }}/>
-        {/* Subtle grid lines */}
-        {[...Array(8)].map((_,i)=>(
-          <div key={i} style={{
-            position:"absolute", left:0, right:0, height:"1px",
-            top:`${(i+1)*12.5}%`, background:"#1560E808"
-          }}/>
-        ))}
+        <motion.div
+          animate={{ scale:[1,1.2,1], opacity:[0.4,0.7,0.4] }}
+          transition={{ duration:5, repeat:Infinity, ease:"easeInOut" }}
+          style={{ position:"absolute", top:"25%", left:"50%", transform:"translate(-50%,-50%)",
+            width:500, height:500, borderRadius:"50%",
+            background:"radial-gradient(circle, #1560E830 0%, transparent 65%)" }}/>
+        <motion.div
+          animate={{ scale:[1,1.15,1], opacity:[0.2,0.5,0.2] }}
+          transition={{ duration:6, repeat:Infinity, ease:"easeInOut", delay:1.5 }}
+          style={{ position:"absolute", bottom:"15%", left:"20%",
+            width:350, height:350, borderRadius:"50%",
+            background:"radial-gradient(circle, #1560E820 0%, transparent 65%)" }}/>
       </div>
 
       <AnimatePresence mode="wait">
 
-        {/* ── SPLASH PHASE ── */}
+        {/* ── SPLASH PHASE — same bg, just logo + name, no form ── */}
         {phase === "splash" && (
           <motion.div key="splash"
             initial={{ opacity:0 }}
             animate={{ opacity:1 }}
-            exit={{ opacity:0, y:-20 }}
-            transition={{ duration:0.4 }}
-            style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:20, position:"relative", zIndex:1 }}>
+            exit={{ opacity:0, scale:0.95 }}
+            transition={{ exit:{ duration:0.4 } }}
+            style={{ display:"flex", flexDirection:"column", alignItems:"center",
+              gap:24, position:"relative", zIndex:1 }}>
 
-            {/* Logo — pop in with bounce */}
+            {/* Logo — zoom bounce */}
             <motion.div
               initial={{ scale:0, opacity:0 }}
-              animate={{ scale:[0,1.2,0.95,1.08,1], opacity:[0,1,1,1,1] }}
-              transition={{ duration:1.0, ease:"easeOut", times:[0,0.35,0.55,0.75,1] }}
-              style={{ filter:"drop-shadow(0 0 40px #4D8EFF88)" }}>
-              {/* White logo box */}
-              <div style={{
-                width:96, height:96, borderRadius:24,
-                background:"#fff",
-                display:"flex", alignItems:"center", justifyContent:"center",
-                boxShadow:"0 0 60px #1560E866, 0 0 20px #4D8EFF44"
-              }}>
-                <svg width={64} height={64} viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-                  <defs>
-                    <linearGradient id="logograd" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#0D3A8A"/>
-                      <stop offset="100%" stopColor="#1560E8"/>
-                    </linearGradient>
-                  </defs>
-                  <g fill="url(#logograd)" transform="translate(256,256) scale(0.7) translate(-256,-256)">
-                    <path d="m476.69 340.78h11.31v42.12h-11.31z"/>
-                    <path d="m24 340.78h11.31v42.12h-11.31z"/>
-                    <path d="m64.96 310.85c-7.53 0-13.66 6.12-13.66 13.63v8.31 58.11 8.31c0 7.52 6.13 13.63 13.66 13.63h23.98v-101.99z"/>
-                    <path d="m387.99 91.69c-31.06-29.93-78.3-19.1-126.35 28.96-1.5 1.5-3.53 2.35-5.65 2.35s-4.16-.85-5.66-2.35c-30.12-30.12-59.92-45.62-85.61-45.62-15.3 0-29.13 5.49-40.72 16.65-26.89 25.91-33.91 79.71-3.07 112.93l135.06 145.48 135.08-145.48c30.84-33.22 23.81-87.02-3.08-112.92z"/>
-                    <path d="m460.7 323.77v76.14c0 7.13-5.81 12.93-12.95 12.93h-24.69v-101.99h24.69c7.14 0 12.95 5.8 12.95 12.92z"/>
-                    <path d="m142.57 293.22c0-3.55-2.89-6.43-6.43-6.43h-24.77c-3.55 0-6.43 2.89-6.43 6.43v9.64 117.98 9.64c0 3.55 2.89 6.43 6.43 6.43h24.77c3.55 0 6.43-2.89 6.43-6.43v-39.58-58.11z"/>
-                    <path d="m353.44 340.78v42.12h-194.88v-42.12h66.97l24.6 26.5c1.51 1.63 3.63 2.56 5.86 2.56 2.22 0 4.34-.93 5.85-2.56l24.61-26.5z"/>
-                    <path d="m407.07 293.22v137.25c0 3.55-2.9 6.43-6.46 6.43h-24.75c-3.55 0-6.43-2.88-6.43-6.43v-137.25c0-3.55 2.88-6.44 6.43-6.44h24.75c3.56 0 6.46 2.89 6.46 6.44z"/>
-                  </g>
-                </svg>
-              </div>
+              animate={{ scale:[0,1.18,0.96,1.06,1], opacity:[0,1,1,1,1] }}
+              transition={{ duration:1.0, ease:"easeOut", times:[0,0.35,0.6,0.8,1] }}
+              style={{ filter:"drop-shadow(0 0 48px #1560E877)" }}>
+              <AppLogo size={100}/>
             </motion.div>
 
             {/* App name */}
             <motion.div
               initial={{ opacity:0, y:20 }}
               animate={{ opacity:1, y:0 }}
-              transition={{ delay:0.6, duration:0.5 }}
+              transition={{ delay:0.65, duration:0.5 }}
               style={{ textAlign:"center" }}>
-              <div style={{ fontSize:38, fontWeight:900, letterSpacing:"-1.5px", color:"#ffffff",
-                textShadow:"0 0 40px #1560E888" }}>
+              <div style={{ fontSize:40, fontWeight:900, letterSpacing:"-1.5px",
+                color:"#ffffff", textShadow:"0 0 40px #1560E877" }}>
                 Overload
               </div>
-              <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:1.0 }}
-                style={{ fontSize:12, color:"#4D8EFF", marginTop:6, letterSpacing:"0.18em", fontWeight:600 }}>
+              <motion.div
+                initial={{ opacity:0 }} animate={{ opacity:1 }}
+                transition={{ delay:1.0 }}
+                style={{ fontSize:12, color:"#4D8EFF", marginTop:8,
+                  letterSpacing:"0.2em", fontWeight:600 }}>
                 PROGRESSIVE TRAINING TRACKER
               </motion.div>
             </motion.div>
 
             {/* Pulsing dots */}
-            <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:1.3 }}
-              style={{ display:"flex", gap:8, marginTop:12 }}>
+            <motion.div
+              initial={{ opacity:0 }} animate={{ opacity:1 }}
+              transition={{ delay:1.3 }}
+              style={{ display:"flex", gap:8 }}>
               {[0,1,2].map(i=>(
                 <motion.div key={i}
-                  animate={{ scale:[1,1.5,1], opacity:[0.4,1,0.4] }}
-                  transition={{ duration:0.9, repeat:Infinity, delay:i*0.2, ease:"easeInOut" }}
+                  animate={{ scale:[1,1.6,1], opacity:[0.3,1,0.3] }}
+                  transition={{ duration:1.0, repeat:Infinity, delay:i*0.22, ease:"easeInOut" }}
                   style={{ width:7, height:7, borderRadius:"50%", background:"#4D8EFF" }}/>
               ))}
             </motion.div>
           </motion.div>
         )}
 
-        {/* ── LOGIN FORM PHASE ── */}
+        {/* ── LOGIN FORM — same background, logo above form ── */}
         {phase === "form" && (
           <motion.div key="form"
-            initial={{ opacity:0, scale:0.92, y:20 }}
-            animate={{ opacity:1, scale:1, y:0 }}
-            transition={{ duration:0.45, ease:[0.22,1,0.36,1] }}
+            initial={{ opacity:0, y:24 }}
+            animate={{ opacity:1, y:0 }}
+            transition={{ duration:0.5, ease:[0.22,1,0.36,1] }}
             style={{ width:"100%", maxWidth:360, position:"relative", zIndex:1 }}>
 
-            {/* Logo small */}
-            <motion.div
-              initial={{ scale:0.6, opacity:0 }}
-              animate={{ scale:1, opacity:1 }}
-              transition={{ duration:0.4, delay:0.1 }}
-              style={{ textAlign:"center", marginBottom:28 }}>
-              <div style={{ display:"flex", justifyContent:"center", marginBottom:14,
-                filter:"drop-shadow(0 0 20px #1560E855)" }}>
-                <AppLogo size={64}/>
+            {/* Logo + name */}
+            <div style={{ textAlign:"center", marginBottom:32 }}>
+              <motion.div
+                initial={{ scale:0.7, opacity:0 }}
+                animate={{ scale:1, opacity:1 }}
+                transition={{ duration:0.4 }}
+                style={{ display:"flex", justifyContent:"center", marginBottom:16,
+                  filter:"drop-shadow(0 0 24px #1560E866)" }}>
+                <AppLogo size={68}/>
+              </motion.div>
+              <div style={{ fontSize:28, fontWeight:900, letterSpacing:"-1px",
+                color:"#ffffff", textShadow:"0 0 30px #1560E866" }}>
+                Overload
               </div>
-              <div style={{ fontSize:26, fontWeight:900, letterSpacing:"-0.5px", color:T.text }}>
-                Over<span style={{color:T.blue}}>load</span>
-              </div>
-              <div style={{ color:T.muted, fontSize:12, marginTop:5, letterSpacing:"0.06em", fontWeight:500 }}>
+              <div style={{ color:"#4D6099", fontSize:12, marginTop:6,
+                letterSpacing:"0.1em", fontWeight:500 }}>
                 SIGN IN TO CONTINUE
               </div>
-            </motion.div>
+            </div>
 
             {/* Form card */}
-            <motion.div
-              initial={{ opacity:0, y:16 }}
-              animate={{ opacity:1, y:0 }}
-              transition={{ delay:0.2, duration:0.35 }}
-              style={{
-                background:T.card,
-                border:`1px solid ${T.border}`,
-                borderRadius:18,
-                padding:"24px 22px",
-                boxShadow:`0 0 0 1px #1560E811, 0 24px 48px #00000088`
-              }}>
+            <div style={{
+              background:"#080E28",
+              border:"1px solid #1560E833",
+              borderRadius:18,
+              padding:"24px 22px",
+              boxShadow:"0 0 0 1px #1560E811, 0 24px 48px #00000099"
+            }}>
+              <div style={{ fontSize:11, color:"#4D6099", marginBottom:6,
+                fontWeight:600, letterSpacing:"0.06em" }}>USERNAME</div>
+              <input value={username} onChange={e=>setUsername(e.target.value)}
+                onKeyDown={e=>e.key==="Enter"&&handle()} placeholder="Enter username"
+                style={{ width:"100%", background:"#040D2E", border:"1px solid #1560E833",
+                  borderRadius:10, color:"#F0F2FF", padding:"11px 14px", fontSize:14,
+                  outline:"none", boxSizing:"border-box", fontFamily:"inherit" }}
+                onFocus={e=>e.target.style.borderColor="#1560E8"}
+                onBlur={e=>e.target.style.borderColor="#1560E833"}/>
 
-              <div style={{ fontSize:12, color:T.muted, marginBottom:6, fontWeight:600, letterSpacing:"0.04em" }}>USERNAME</div>
-              <input
-                value={username} onChange={e=>setUsername(e.target.value)}
-                onKeyDown={e=>e.key==="Enter"&&handle()}
-                placeholder="Enter username"
-                style={{
-                  width:"100%", background:T.cardHi,
-                  border:`1px solid ${T.border}`,
-                  borderRadius:10, color:T.text,
-                  padding:"11px 14px", fontSize:14, outline:"none",
-                  boxSizing:"border-box", fontFamily:"inherit",
-                  transition:"border-color 0.2s"
-                }}
-                onFocus={e=>e.target.style.borderColor=T.blue}
-                onBlur={e=>e.target.style.borderColor=T.border}
-              />
-
-              <div style={{ fontSize:12, color:T.muted, margin:"16px 0 6px", fontWeight:600, letterSpacing:"0.04em" }}>PASSWORD</div>
-              <input
-                type="password"
-                value={password} onChange={e=>setPassword(e.target.value)}
-                onKeyDown={e=>e.key==="Enter"&&handle()}
-                placeholder="Enter password"
-                style={{
-                  width:"100%", background:T.cardHi,
-                  border:`1px solid ${T.border}`,
-                  borderRadius:10, color:T.text,
-                  padding:"11px 14px", fontSize:14, outline:"none",
-                  boxSizing:"border-box", fontFamily:"inherit",
-                  transition:"border-color 0.2s"
-                }}
-                onFocus={e=>e.target.style.borderColor=T.blue}
-                onBlur={e=>e.target.style.borderColor=T.border}
-              />
+              <div style={{ fontSize:11, color:"#4D6099", margin:"16px 0 6px",
+                fontWeight:600, letterSpacing:"0.06em" }}>PASSWORD</div>
+              <input type="password" value={password} onChange={e=>setPassword(e.target.value)}
+                onKeyDown={e=>e.key==="Enter"&&handle()} placeholder="Enter password"
+                style={{ width:"100%", background:"#040D2E", border:"1px solid #1560E833",
+                  borderRadius:10, color:"#F0F2FF", padding:"11px 14px", fontSize:14,
+                  outline:"none", boxSizing:"border-box", fontFamily:"inherit" }}
+                onFocus={e=>e.target.style.borderColor="#1560E8"}
+                onBlur={e=>e.target.style.borderColor="#1560E833"}/>
 
               {error && (
                 <motion.div initial={{opacity:0,y:-4}} animate={{opacity:1,y:0}}
@@ -844,23 +794,19 @@ function LoginScreen({ onLogin }) {
                 </motion.div>
               )}
 
-              <motion.button
-                whileTap={{ scale:0.97 }}
-                whileHover={{ boxShadow:`0 0 28px ${T.blue}66` }}
-                onClick={handle}
-                style={{
-                  width:"100%", marginTop:20,
-                  background:`linear-gradient(135deg, #0D3A8A, #1560E8)`,
-                  color:"#fff", border:"none", borderRadius:12,
-                  padding:"13px 0", fontSize:14, fontWeight:700,
-                  cursor:"pointer", display:"flex", alignItems:"center",
-                  justifyContent:"center", gap:8,
-                  boxShadow:`0 0 20px ${T.blue}44`,
-                  fontFamily:"inherit"
-                }}>
+              <motion.button whileTap={{scale:0.97}} onClick={handle} style={{
+                width:"100%", marginTop:20,
+                background:"linear-gradient(135deg, #0D3A8A, #1560E8)",
+                color:"#fff", border:"none", borderRadius:12,
+                padding:"13px 0", fontSize:14, fontWeight:700,
+                cursor:"pointer", display:"flex", alignItems:"center",
+                justifyContent:"center", gap:8,
+                boxShadow:"0 0 24px #1560E855",
+                fontFamily:"inherit"
+              }}>
                 <Icon name="user" size={16} color="#fff"/> Sign in
               </motion.button>
-            </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
