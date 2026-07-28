@@ -1,22 +1,26 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" style="background:#040D2E">
   <head>
     <meta charset="UTF-8" />
+    <!-- Kill white flash — runs before ANY paint -->
+    <script>
+      document.documentElement.style.background='#040D2E';
+      document.documentElement.style.margin='0';
+    </script>
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      html,body,#root{background:#040D2E !important;margin:0;padding:0;min-height:100vh}
+    </style>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-title" content="Overload" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="theme-color" content="#040D2E" />
     <title>Overload</title>
-    <style>
-      html { background: #040D2E; }
-      body { background: #040D2E; margin: 0; padding: 0; }
-      #root { background: #040D2E; min-height: 100vh; min-height: 100dvh; }
-    </style>
   </head>
-  <body>
-    <div id="root"></div>
+  <body style="background:#040D2E;margin:0">
+    <div id="root" style="background:#040D2E;min-height:100vh"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
