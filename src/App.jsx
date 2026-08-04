@@ -1240,7 +1240,6 @@ function LogView({ currentUser, editingSession, onEditDone }) {
       <AnimatePresence>
         {showPicker && (() => {
           const q = pickerQuery.trim().toLowerCase();
-          // Get exercises for current split day groups (suggested), or all if searching
           const splitGroups = meta.groups || ALL_GROUPS;
           const suggestedPool = splitGroups.flatMap(g =>
             [...(EXERCISE_BANK_ALL[g]?.machines||[]),...(EXERCISE_BANK_ALL[g]?.cables||[]),
@@ -1248,8 +1247,18 @@ function LogView({ currentUser, editingSession, onEditDone }) {
           );
           const activeGroup = pickerGroup === "all" ? null : BODY_PART_GROUPS.find(g=>g.key===pickerGroup);
           const poolForGroup = activeGroup ? activeGroup.exercises : suggestedPool;
-          const searchResults = q ? ALL_EXERCISES.filter(ex=>ex.toLowerCase().includes(q)) : poolForGroup;
-          const recentForView = recentEx.filter(ex=>!selected.includes(ex));
+
+          // Search: matched only, relevance sorted (starts-with before contains)
+          const searchResults = q ? (() => {
+            const startsWith = ALL_EXERCISES.filter(ex => ex.toLowerCase().startsWith(q));
+            const contains   = ALL_EXERCISES.filter(ex => !ex.toLowerCase().startsWith(q) && ex.toLowerCase().includes(q));
+            return [...startsWith, ...contains];
+          })() : poolForGroup;
+
+          // Recent: only exercises that belong to today's split day
+          const recentForView = recentEx.filter(ex =>
+            !selected.includes(ex) && suggestedPool.includes(ex)
+          );
 
           return (
             <motion.div initial={{opacity:0,height:0}} animate={{opacity:1,height:"auto"}} exit={{opacity:0,height:0}}
@@ -1258,13 +1267,20 @@ function LogView({ currentUser, editingSession, onEditDone }) {
                 {/* Search */}
                 <div style={{position:"relative",marginBottom:12}}>
                   <Input value={pickerQuery} onChange={e=>setPickerQuery(e.target.value)}
-                    placeholder="Search 400+ exercises by name…" style={{paddingLeft:38}}/>
+                    placeholder="Search exercises…" style={{paddingLeft:38}}/>
                   <div style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)"}}>
                     <Icon name="filter" size={14} color={T.muted}/>
                   </div>
+                  {q && (
+                    <motion.button whileTap={{scale:0.9}} onClick={()=>setPickerQuery("")}
+                      style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",
+                        background:"none",border:"none",cursor:"pointer",padding:4}}>
+                      <Icon name="close" size={13} color={T.muted}/>
+                    </motion.button>
+                  )}
                 </div>
 
-                {/* Body part filter tabs */}
+                {/* Body part filter tabs — hidden while searching */}
                 {!q && (
                   <div style={{display:"flex",gap:5,overflowX:"auto",marginBottom:12,scrollbarWidth:"none",paddingBottom:4}}>
                     <motion.button whileTap={{scale:0.93}} onClick={()=>setPickerGroup("all")} style={{
@@ -1286,7 +1302,7 @@ function LogView({ currentUser, editingSession, onEditDone }) {
                   </div>
                 )}
 
-                {/* Recent */}
+                {/* Recent — only when not searching, only current day's split exercises */}
                 {!q && recentForView.length>0 && (
                   <div style={{marginBottom:12}}>
                     <div style={{fontSize:10,color:T.muted,marginBottom:6,letterSpacing:"0.06em",display:"flex",alignItems:"center",gap:5}}>
@@ -1307,25 +1323,26 @@ function LogView({ currentUser, editingSession, onEditDone }) {
 
                 {/* Count label */}
                 <div style={{fontSize:10,color:T.muted,marginBottom:8,letterSpacing:"0.06em"}}>
-                  {q ? `${searchResults.length} RESULT${searchResults.length!==1?"S":""}` :
-                   pickerGroup==="all" ? `${meta.label.toUpperCase()} · ${searchResults.length} EXERCISES` :
-                   `${(activeGroup?.label||"").toUpperCase()} · ${searchResults.length} EXERCISES`}
+                  {q
+                    ? `${searchResults.length} MATCH${searchResults.length!==1?"ES":""} FOR "${pickerQuery.trim().toUpperCase()}"`
+                    : pickerGroup==="all"
+                      ? `${meta.label.toUpperCase()} · ${searchResults.length} EXERCISES`
+                      : `${(activeGroup?.label||"").toUpperCase()} · ${searchResults.length} EXERCISES`}
                 </div>
 
                 {searchResults.length===0 ? (
                   <div style={{textAlign:"center",color:T.muted,fontSize:13,padding:"16px 0"}}>
-                    No results for "{pickerQuery}"
+                    No matches for "{pickerQuery}"
                   </div>
                 ) : (
                   <div style={{display:"flex",flexWrap:"wrap",gap:6,maxHeight:260,overflowY:"auto"}}>
                     {searchResults.map(ex=>{
                       const sel = selected.includes(ex);
-                      const inSplit = suggestedPool.includes(ex);
                       return (
                         <motion.button key={ex} onClick={()=>toggleEx(ex)} whileTap={{scale:0.93}} style={{
                           background:sel?meta.color:T.cardHi,
                           border:sel?"none":`1px solid ${T.border}`,
-                          color:sel?(meta.color===T.yellow?T.bg:"#fff"):inSplit?T.text:T.muted,
+                          color:sel?(meta.color===T.yellow?T.bg:"#fff"):T.text,
                           borderRadius:20,padding:"5px 13px",fontSize:12,cursor:"pointer",
                           fontWeight:sel?700:400,boxShadow:sel?`0 0 10px ${meta.color}44`:"none"}}>
                           {ex}
@@ -2574,6 +2591,14 @@ function WellnessView({ currentUser }) {
         </motion.button>
       </div>
 
+      {/* Food Analyser — AI powered */}
+      <FoodAnalyser currentUser={currentUser} onAddProtein={(desc, grams) => {
+        const entry = { id:Date.now(), date:todayISO(), desc, grams,
+          time:new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}) };
+        const updated = [entry, ...proteinLog];
+        S.set(`wt_protein_${uid}`, updated); setProteinLog(updated);
+      }}/>
+
       <AnimatePresence>
         {editTarget && (
           <motion.div initial={{opacity:0,height:0}} animate={{opacity:1,height:"auto"}} exit={{opacity:0,height:0}}
@@ -2887,6 +2912,318 @@ function SettingsView({ currentUser }) {
   );
 }
 
+// ─── Gemini API helper ───────────────────────────────────────────────────────
+async function callGemini(type, prompt, image) {
+  const res = await fetch('/api/gemini', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type, prompt, image })
+  });
+  return res.json();
+}
+
+// ─── Food Analyser ────────────────────────────────────────────────────────────
+function FoodAnalyser({ currentUser, onAddProtein }) {
+  const [loading,   setLoading]   = useState(false);
+  const [result,    setResult]    = useState(null);
+  const [error,     setError]     = useState("");
+  const [preview,   setPreview]   = useState(null);
+  const fileRef = useRef(null);
+
+  async function handleImage(file) {
+    if (!file) return;
+    setError(""); setResult(null);
+
+    // Preview
+    const reader = new FileReader();
+    reader.onload = e => setPreview(e.target.result);
+    reader.readAsDataURL(file);
+
+    // Convert to base64
+    const b64 = await new Promise(res => {
+      const r = new FileReader();
+      r.onload = e => res(e.target.result.split(',')[1]);
+      r.readAsDataURL(file);
+    });
+
+    setLoading(true);
+    try {
+      const data = await callGemini('nutrition', null, {
+        data: b64,
+        mimeType: file.type
+      });
+      if (data.success) setResult(data.nutrition);
+      else setError(data.error || 'Could not analyse image');
+    } catch {
+      setError('Failed to connect. Check your internet.');
+    }
+    setLoading(false);
+  }
+
+  function addToTracker() {
+    if (!result) return;
+    const desc = result.foods?.join(', ') || 'Food photo';
+    onAddProtein(desc, result.protein);
+    setResult(null); setPreview(null);
+  }
+
+  return (
+    <Card style={{ marginBottom:16 }}>
+      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
+        <Icon name="eye" size={16} color={T.green}/>
+        <div style={{ fontSize:14, fontWeight:800, color:T.text }}>Food Analyser</div>
+        <span style={{ fontSize:10, background:`${T.green}22`, color:T.green,
+          padding:"2px 8px", borderRadius:20, fontWeight:700 }}>AI</span>
+      </div>
+
+      {/* Upload area */}
+      <input ref={fileRef} type="file" accept="image/*" capture="environment"
+        onChange={e => handleImage(e.target.files[0])}
+        style={{ display:"none" }}/>
+
+      {!preview && (
+        <div style={{ display:"flex", gap:8 }}>
+          <motion.button whileTap={{scale:0.96}} onClick={()=>{ fileRef.current.removeAttribute('capture'); fileRef.current.click(); }}
+            style={{ flex:1, background:T.cardHi, border:`1.5px dashed ${T.border}`,
+              borderRadius:12, padding:"16px 0", cursor:"pointer",
+              display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
+            <Icon name="export" size={20} color={T.muted}/>
+            <span style={{ fontSize:12, color:T.muted, fontWeight:600 }}>Gallery</span>
+          </motion.button>
+          <motion.button whileTap={{scale:0.96}} onClick={()=>{ fileRef.current.setAttribute('capture','environment'); fileRef.current.click(); }}
+            style={{ flex:1, background:T.cardHi, border:`1.5px dashed ${T.blue}44`,
+              borderRadius:12, padding:"16px 0", cursor:"pointer",
+              display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
+            <Icon name="eye" size={20} color={T.blue}/>
+            <span style={{ fontSize:12, color:T.blue, fontWeight:600 }}>Camera</span>
+          </motion.button>
+        </div>
+      )}
+
+      {/* Preview */}
+      {preview && (
+        <div style={{ position:"relative", marginBottom:12 }}>
+          <img src={preview} alt="food" style={{ width:"100%", borderRadius:10, maxHeight:200, objectFit:"cover" }}/>
+          <motion.button whileTap={{scale:0.9}} onClick={()=>{ setPreview(null); setResult(null); setError(""); }}
+            style={{ position:"absolute", top:8, right:8, background:"#000a",
+              border:"none", borderRadius:"50%", width:28, height:28, cursor:"pointer",
+              display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <Icon name="close" size={14} color="#fff"/>
+          </motion.button>
+        </div>
+      )}
+
+      {/* Loading */}
+      {loading && (
+        <div style={{ textAlign:"center", padding:"16px 0" }}>
+          <motion.div animate={{ rotate:360 }} transition={{ duration:1, repeat:Infinity, ease:"linear" }}
+            style={{ width:28, height:28, border:`3px solid ${T.border}`,
+              borderTop:`3px solid ${T.green}`, borderRadius:"50%", margin:"0 auto 8px" }}/>
+          <div style={{ fontSize:12, color:T.muted }}>Analysing food…</div>
+        </div>
+      )}
+
+      {/* Error */}
+      {error && <div style={{ color:T.danger, fontSize:12, marginTop:8 }}>{error}</div>}
+
+      {/* Results */}
+      {result && (
+        <motion.div initial={{opacity:0,y:8}} animate={{opacity:1,y:0}}>
+          {result.foods?.length > 0 && (
+            <div style={{ fontSize:13, fontWeight:700, color:T.text, marginBottom:12 }}>
+              {result.foods.join(', ')}
+            </div>
+          )}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:12 }}>
+            {[
+              { label:"Calories",  value:`${result.calories} kcal`, color:T.orange },
+              { label:"Protein",   value:`${result.protein}g`,      color:T.green  },
+              { label:"Carbs",     value:`${result.carbs}g`,        color:T.yellow },
+              { label:"Fats",      value:`${result.fats}g`,         color:T.blue   },
+            ].map(m => (
+              <div key={m.label} style={{ background:T.cardHi, borderRadius:10,
+                padding:"10px 12px", border:`1px solid ${T.border}` }}>
+                <div style={{ fontSize:18, fontWeight:800, color:m.color }}>{m.value}</div>
+                <div style={{ fontSize:10, color:T.muted, marginTop:2, letterSpacing:"0.06em" }}>{m.label.toUpperCase()}</div>
+              </div>
+            ))}
+          </div>
+          {result.notes && (
+            <div style={{ fontSize:11, color:T.muted, fontStyle:"italic",
+              background:T.cardHi, borderRadius:8, padding:"8px 12px", marginBottom:12 }}>
+              {result.notes}
+            </div>
+          )}
+          {result.confidence && (
+            <div style={{ fontSize:10, color:T.muted, marginBottom:12 }}>
+              Confidence: <span style={{ color: result.confidence==="high"?T.green:result.confidence==="medium"?T.yellow:T.danger,
+                fontWeight:700 }}>{result.confidence}</span>
+            </div>
+          )}
+          <GlowBtn full color={T.green} onClick={addToTracker}>
+            <Icon name="plus" size={15} color="#fff"/>
+            Add {result.protein}g protein to today's log
+          </GlowBtn>
+        </motion.div>
+      )}
+
+      {preview && !loading && !result && !error && (
+        <GlowBtn full color={T.green} onClick={()=>handleImage(fileRef.current?.files[0])}
+          style={{marginTop:8}}>
+          <Icon name="eye" size={15} color="#fff"/> Analyse this food
+        </GlowBtn>
+      )}
+    </Card>
+  );
+}
+
+// ─── AI Bot ───────────────────────────────────────────────────────────────────
+function AIBot({ currentUser, onClose }) {
+  const [messages, setMessages] = useState([{
+    role:"assistant",
+    text:"Hi! I'm your Overload AI assistant. Ask me anything about workouts, exercises, nutrition, or how to use the app. 💪"
+  }]);
+  const [input, setInput]   = useState("");
+  const [loading, setLoading] = useState(false);
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior:"smooth" });
+  }, [messages]);
+
+  async function send() {
+    const q = input.trim();
+    if (!q || loading) return;
+    setInput("");
+    setMessages(p => [...p, { role:"user", text:q }]);
+    setLoading(true);
+
+    // Build context from user's data
+    const sessions  = S.get("wt_sessions",[]).filter(s=>s.userId===currentUser.id);
+    const prs       = S.get(`wt_prs_${currentUser.id}`,{});
+    const splitKey  = S.get(`wt_split_${currentUser.id}`,"ppl");
+    const streak    = calcStreak(sessions);
+    const topPRs    = Object.entries(prs).slice(0,5).map(([n,p])=>`${n}: ${p.maxWeight}kg`).join(', ');
+
+    const systemCtx = `You are a helpful gym and fitness AI assistant built into the Overload workout tracking app.
+
+User's data:
+- Workout split: ${splitKey.toUpperCase()}
+- Total sessions logged: ${sessions.length}
+- Current streak: ${streak} days
+- Top PRs: ${topPRs || 'none yet'}
+
+App features:
+- Train tab: log workouts, add exercises, track sets/reps/weight
+- Streak tab: calendar showing training history, tap any date for details
+- Records tab: session history and personal records
+- Wellness tab: sleep tracker, protein tracker, food photo analyser
+- Settings tab: change workout split
+
+Be concise, practical, and motivating. If asked about navigation, explain clearly which tab to use.
+Keep responses under 150 words unless a detailed explanation is needed.`;
+
+    const fullPrompt = `${systemCtx}\n\nUser: ${q}\n\nAssistant:`;
+
+    try {
+      const data = await callGemini('chat', fullPrompt, null);
+      if (data.success) {
+        setMessages(p => [...p, { role:"assistant", text:data.text.trim() }]);
+      } else {
+        setMessages(p => [...p, { role:"assistant", text:"Sorry, I couldn't process that. Try again." }]);
+      }
+    } catch {
+      setMessages(p => [...p, { role:"assistant", text:"Connection error. Check your internet and try again." }]);
+    }
+    setLoading(false);
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity:0, y:60, scale:0.95 }}
+      animate={{ opacity:1, y:0, scale:1 }}
+      exit={{ opacity:0, y:60, scale:0.95 }}
+      transition={{ type:"spring", stiffness:400, damping:30 }}
+      style={{
+        position:"fixed", bottom:90, left:"50%", transform:"translateX(-50%)",
+        width:"calc(100% - 32px)", maxWidth:448, zIndex:100,
+        background:T.card, border:`1px solid ${T.blue}44`,
+        borderRadius:20, overflow:"hidden",
+        boxShadow:`0 0 60px #00000088, 0 0 0 1px ${T.blue}22`
+      }}>
+
+      {/* Header */}
+      <div style={{ background:`linear-gradient(135deg, #040D2E, #0D3A8A)`,
+        padding:"14px 16px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ width:32, height:32, borderRadius:10, background:`${T.blue}44`,
+            display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <Icon name="star" size={16} color={T.yellow}/>
+          </div>
+          <div>
+            <div style={{ fontSize:14, fontWeight:800, color:"#fff" }}>AI Assistant</div>
+            <div style={{ fontSize:10, color:"#4D8EFF" }}>Powered by Gemini</div>
+          </div>
+        </div>
+        <motion.button whileTap={{scale:0.9}} onClick={onClose}
+          style={{ background:"none", border:"none", cursor:"pointer", padding:4 }}>
+          <Icon name="close" size={18} color="#fff"/>
+        </motion.button>
+      </div>
+
+      {/* Messages */}
+      <div style={{ height:300, overflowY:"auto", padding:"12px 14px", display:"flex", flexDirection:"column", gap:10 }}>
+        {messages.map((m,i) => (
+          <motion.div key={i}
+            initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }}
+            style={{ display:"flex", justifyContent:m.role==="user"?"flex-end":"flex-start" }}>
+            <div style={{
+              maxWidth:"82%", padding:"10px 13px", borderRadius:14,
+              borderBottomRightRadius: m.role==="user"?4:14,
+              borderBottomLeftRadius:  m.role==="assistant"?4:14,
+              background: m.role==="user" ? T.blue : T.cardHi,
+              color: m.role==="user" ? "#fff" : T.text,
+              fontSize:13, lineHeight:1.5,
+              border: m.role==="assistant" ? `1px solid ${T.border}` : "none"
+            }}>
+              {m.text}
+            </div>
+          </motion.div>
+        ))}
+        {loading && (
+          <div style={{ display:"flex", gap:5, padding:"8px 0" }}>
+            {[0,1,2].map(i=>(
+              <motion.div key={i}
+                animate={{ scale:[1,1.4,1], opacity:[0.4,1,0.4] }}
+                transition={{ duration:0.8, repeat:Infinity, delay:i*0.18 }}
+                style={{ width:7, height:7, borderRadius:"50%", background:T.blue }}/>
+            ))}
+          </div>
+        )}
+        <div ref={bottomRef}/>
+      </div>
+
+      {/* Input */}
+      <div style={{ padding:"10px 12px", borderTop:`1px solid ${T.border}`,
+        display:"flex", gap:8, alignItems:"center" }}>
+        <input value={input} onChange={e=>setInput(e.target.value)}
+          onKeyDown={e=>e.key==="Enter"&&send()}
+          placeholder="Ask anything…"
+          style={{ flex:1, background:T.cardHi, border:`1px solid ${T.border}`,
+            borderRadius:10, color:T.text, padding:"9px 13px", fontSize:13,
+            outline:"none", fontFamily:"inherit" }}/>
+        <motion.button whileTap={{scale:0.9}} onClick={send} disabled={loading||!input.trim()}
+          style={{ width:38, height:38, borderRadius:10, border:"none", cursor:"pointer",
+            background: input.trim() && !loading ? T.blue : T.border,
+            display:"flex", alignItems:"center", justifyContent:"center",
+            boxShadow: input.trim() ? `0 0 14px ${T.blue}55` : "none" }}>
+          <Icon name="trend" size={16} color="#fff"/>
+        </motion.button>
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── App Shell ────────────────────────────────────────────────────────────────
 export default function App() {
   useEffect(()=>{ initStorage(); },[]);
@@ -2894,6 +3231,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(()=>S.get("wt_session",null));
   const [tab,         setTab]         = useState("train");
   const [editingSession, setEditingSession] = useState(null);
+  const [showBot,     setShowBot]     = useState(false);
   function handleLogin(user)  { setCurrentUser(user); S.set("wt_session",user); }
   function handleLogout()     { setCurrentUser(null); S.set("wt_session",null); setEditingSession(null); }
   function handleEditSession(session) { setEditingSession(session); setTab("train"); }
@@ -3149,6 +3487,39 @@ export default function App() {
             })}
           </div>
         </div>
+
+        {/* ── Floating AI Bot button ── */}
+        <AnimatePresence>
+          {!showBot && (
+            <motion.button
+              initial={{ scale:0, opacity:0 }}
+              animate={{ scale:1, opacity:1 }}
+              exit={{ scale:0, opacity:0 }}
+              whileTap={{ scale:0.9 }}
+              onClick={() => setShowBot(true)}
+              style={{
+                position:"fixed", bottom:100, right:20, zIndex:90,
+                width:52, height:52, borderRadius:"50%", border:"none",
+                background:`linear-gradient(135deg, #0D3A8A, #1560E8)`,
+                cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
+                boxShadow:`0 0 24px ${T.blue}66, 0 4px 16px #00000066`
+              }}>
+              <Icon name="star" size={22} color={T.yellow}/>
+              {/* Pulse ring */}
+              <motion.div
+                animate={{ scale:[1,1.6], opacity:[0.5,0] }}
+                transition={{ duration:1.8, repeat:Infinity, ease:"easeOut" }}
+                style={{ position:"absolute", inset:0, borderRadius:"50%",
+                  border:`2px solid ${T.blue}`, pointerEvents:"none" }}/>
+            </motion.button>
+          )}
+        </AnimatePresence>
+
+        {/* ── AI Bot panel ── */}
+        <AnimatePresence>
+          {showBot && <AIBot currentUser={currentUser} onClose={() => setShowBot(false)}/>}
+        </AnimatePresence>
+
       </div>
     </>
   );
