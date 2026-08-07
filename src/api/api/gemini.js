@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -8,73 +7,48 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const GEMINI_KEY = process.env.GEMINI_KEY;
-  if (!GEMINI_KEY) return res.status(500).json({ error: 'API key not configured' });
+  if (!GEMINI_KEY) return res.status(500).json({ error: 'GEMINI_KEY not set in environment variables' });
 
-  const { type, prompt, image } = req.body;
+  const { type, prompt, image } = req.body || {};
 
   try {
-    let requestBody;
+    const parts = [];
 
-    if (type === 'nutrition' && image) {
-      // Food photo analysis
-      requestBody = {
-        contents: [{
-          parts: [
-            {
-              inline_data: {
-                mime_type: image.mimeType,
-                data: image.data
-              }
-            },
-            {
-              text: `You are a nutrition expert. Analyze this food image and provide estimated nutritional information.
-
-Return ONLY a JSON object in this exact format, no other text:
-{
-  "foods": ["food item 1", "food item 2"],
-  "calories": 450,
-  "protein": 35,
-  "carbs": 42,
-  "fats": 12,
-  "fiber": 4,
-  "confidence": "high",
-  "notes": "Brief note about the meal"
-}
-
-All values should be numbers (grams for macros, kcal for calories).
-Confidence should be "high", "medium", or "low".
-Be realistic with Indian food portions if applicable.`
-            }
-          ]
-        }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 500 }
-      };
+    if (type === 'nutrition' && image?.data) {
+      parts.push({ inline_data: { mime_type: image.mimeType || 'image/jpeg', data: image.data } });
+      parts.push({ text: `You are a nutrition expert. Analyze this food image.
+Return ONLY valid JSON, no markdown, no explanation:
+{"foods":["item1"],"calories":400,"protein":30,"carbs":45,"fats":12,"fiber":3,"confidence":"high","notes":"brief note"}
+All numbers are integers. confidence is "high","medium", or "low".` });
+    } else if (type === 'chat' && prompt) {
+      parts.push({ text: prompt });
     } else {
-      // AI Bot chat
-      requestBody = {
-        contents: [{
-          parts: [{ text: prompt }]
-        }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
-      };
+      return res.status(400).json({ error: 'Invalid request: provide type=nutrition with image, or type=chat with prompt' });
     }
 
-    const response = await fetch(
+    const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify({
+          contents: [{ parts }],
+          generationConfig: {
+            temperature: type === 'nutrition' ? 0.1 : 0.7,
+            maxOutputTokens: type === 'nutrition' ? 400 : 800
+          }
+        })
       }
     );
 
-    const data = await response.json();
+    const data = await geminiRes.json();
 
-    if (!response.ok) {
-      return res.status(response.status).json({ error: data.error?.message || 'Gemini API error' });
+    if (!geminiRes.ok) {
+      const msg = data?.error?.message || `Gemini error ${geminiRes.status}`;
+      return res.status(geminiRes.status).json({ error: msg });
     }
 
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
 
     if (type === 'nutrition') {
       try {
@@ -82,13 +56,14 @@ Be realistic with Indian food portions if applicable.`
         const nutrition = JSON.parse(clean);
         return res.status(200).json({ success: true, nutrition });
       } catch {
-        return res.status(200).json({ success: false, error: 'Could not parse nutrition data', raw: text });
+        return res.status(200).json({ success: false, error: 'Could not parse response. Try a clearer photo.', raw: text });
       }
     }
 
     return res.status(200).json({ success: true, text });
 
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error('Gemini handler error:', err);
+    return res.status(500).json({ error: err.message || 'Internal server error' });
   }
 }
