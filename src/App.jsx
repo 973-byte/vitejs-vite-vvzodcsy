@@ -2392,6 +2392,8 @@ function WellnessView({ currentUser }) {
   const [proteinLog,    setProteinLog]    = useState(()=>S.get(`wt_protein_${uid}`,[]));
   const [mealDesc,      setMealDesc]      = useState("");
   const [mealGrams,     setMealGrams]     = useState("");
+  const [mealCarbs,     setMealCarbs]     = useState("");
+  const [mealFats,      setMealFats]      = useState("");
   const [editTarget,    setEditTarget]    = useState(false);
   const [targetInput,   setTargetInput]   = useState(String(proteinTarget));
   const [mealSaved,     setMealSaved]     = useState(false);
@@ -2409,10 +2411,11 @@ function WellnessView({ currentUser }) {
   function addMeal() {
     if (!mealGrams) return;
     const entry={ id:Date.now(), date:todayISO(), desc:mealDesc||"Meal",
-      grams:parseFloat(mealGrams), time:new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}) };
+      grams:parseFloat(mealGrams), carbs:parseFloat(mealCarbs)||0, fats:parseFloat(mealFats)||0,
+      time:new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}) };
     const updated=[entry,...proteinLog];
     S.set(`wt_protein_${uid}`,updated); setProteinLog(updated);
-    setMealDesc(""); setMealGrams("");
+    setMealDesc(""); setMealGrams(""); setMealCarbs(""); setMealFats("");
     setMealSaved(true); setTimeout(()=>setMealSaved(false),1500);
   }
   function deleteMeal(id) {
@@ -2592,8 +2595,8 @@ function WellnessView({ currentUser }) {
       </div>
 
       {/* Food Analyser — AI powered */}
-      <FoodAnalyser currentUser={currentUser} onAddProtein={(desc, grams) => {
-        const entry = { id:Date.now(), date:todayISO(), desc, grams,
+      <FoodAnalyser currentUser={currentUser} onAddProtein={(desc, grams, carbs, fats) => {
+        const entry = { id:Date.now(), date:todayISO(), desc, grams:grams||0, carbs:carbs||0, fats:fats||0,
           time:new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}) };
         const updated = [entry, ...proteinLog];
         S.set(`wt_protein_${uid}`, updated); setProteinLog(updated);
@@ -2645,15 +2648,24 @@ function WellnessView({ currentUser }) {
         <div style={{ fontSize:11, color:T.muted, fontWeight:700, letterSpacing:"0.06em", marginBottom:8 }}>ADD MEAL</div>
         <Input value={mealDesc} onChange={e=>setMealDesc(e.target.value)}
           placeholder="Meal description (e.g. Chicken rice bowl)" style={{marginBottom:8}}/>
-        <div style={{ display:"flex", gap:8 }}>
+        <div style={{ display:"flex", gap:6, marginBottom:8 }}>
           <div style={{ flex:1 }}>
-            <Input type="number" value={mealGrams} onChange={e=>setMealGrams(e.target.value)}
-              placeholder="Protein grams" onKeyDown={e=>e.key==="Enter"&&addMeal()}/>
+            <div style={{ fontSize:10, color:T.muted, marginBottom:4, letterSpacing:"0.06em" }}>PROTEIN (g)</div>
+            <Input type="number" value={mealGrams} onChange={e=>setMealGrams(e.target.value)} placeholder="0"/>
           </div>
-          <GlowBtn color={T.green} small onClick={addMeal}>
-            <Icon name={mealSaved?"check":"plus"} size={15} color="#fff"/>
-          </GlowBtn>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:10, color:T.muted, marginBottom:4, letterSpacing:"0.06em" }}>CARBS (g)</div>
+            <Input type="number" value={mealCarbs} onChange={e=>setMealCarbs(e.target.value)} placeholder="0"/>
+          </div>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:10, color:T.muted, marginBottom:4, letterSpacing:"0.06em" }}>FATS (g)</div>
+            <Input type="number" value={mealFats} onChange={e=>setMealFats(e.target.value)} placeholder="0"/>
+          </div>
         </div>
+        <GlowBtn full color={T.green} small onClick={addMeal}>
+          <Icon name={mealSaved?"check":"plus"} size={15} color="#fff"/>
+          {mealSaved ? "Saved!" : "Add Meal"}
+        </GlowBtn>
 
         {todayProtein.length>0 && (
           <div style={{ marginTop:14, paddingTop:14, borderTop:`1px solid ${T.border}` }}>
@@ -2914,12 +2926,20 @@ function SettingsView({ currentUser }) {
 
 // ─── Gemini API helper ───────────────────────────────────────────────────────
 async function callGemini(type, prompt, image) {
-  const res = await fetch('/api/gemini', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type, prompt, image })
-  });
-  return res.json();
+  try {
+    const res = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, prompt, image })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({error:`HTTP ${res.status}`}));
+      throw new Error(err.error || `Server error ${res.status}`);
+    }
+    return res.json();
+  } catch(e) {
+    throw new Error(e.message || 'Network error — check your connection');
+  }
 }
 
 // ─── Food Analyser ────────────────────────────────────────────────────────────
@@ -2954,8 +2974,8 @@ function FoodAnalyser({ currentUser, onAddProtein }) {
       });
       if (data.success) setResult(data.nutrition);
       else setError(data.error || 'Could not analyse image');
-    } catch {
-      setError('Failed to connect. Check your internet.');
+    } catch(e) {
+      setError(e.message || 'Failed to connect. Check your internet.');
     }
     setLoading(false);
   }
@@ -2963,7 +2983,7 @@ function FoodAnalyser({ currentUser, onAddProtein }) {
   function addToTracker() {
     if (!result) return;
     const desc = result.foods?.join(', ') || 'Food photo';
-    onAddProtein(desc, result.protein);
+    onAddProtein(desc, result.protein, result.carbs, result.fats);
     setResult(null); setPreview(null);
   }
 
@@ -3062,7 +3082,7 @@ function FoodAnalyser({ currentUser, onAddProtein }) {
           )}
           <GlowBtn full color={T.green} onClick={addToTracker}>
             <Icon name="plus" size={15} color="#fff"/>
-            Add {result.protein}g protein to today's log
+            Add to log · P:{result.protein}g C:{result.carbs}g F:{result.fats}g
           </GlowBtn>
         </motion.div>
       )}
@@ -3132,8 +3152,8 @@ Keep responses under 150 words unless a detailed explanation is needed.`;
       } else {
         setMessages(p => [...p, { role:"assistant", text:"Sorry, I couldn't process that. Try again." }]);
       }
-    } catch {
-      setMessages(p => [...p, { role:"assistant", text:"Connection error. Check your internet and try again." }]);
+    } catch(e) {
+      setMessages(p => [...p, { role:"assistant", text:e.message || "Connection error. Check your internet and try again." }]);
     }
     setLoading(false);
   }
@@ -3145,8 +3165,8 @@ Keep responses under 150 words unless a detailed explanation is needed.`;
       exit={{ opacity:0, y:60, scale:0.95 }}
       transition={{ type:"spring", stiffness:400, damping:30 }}
       style={{
-        position:"fixed", bottom:90, left:"50%", transform:"translateX(-50%)",
-        width:"calc(100% - 32px)", maxWidth:448, zIndex:100,
+        position:"fixed", bottom:82, left:16, right:16,
+        maxWidth:448, margin:"0 auto", zIndex:100,
         background:T.card, border:`1px solid ${T.blue}44`,
         borderRadius:20, overflow:"hidden",
         boxShadow:`0 0 60px #00000088, 0 0 0 1px ${T.blue}22`
