@@ -2925,12 +2925,17 @@ function SettingsView({ currentUser }) {
 }
 
 // ─── Gemini API helper ───────────────────────────────────────────────────────
-async function callGemini(type, prompt, image) {
+async function callGemini(type, prompt, image, history = []) {
   try {
     const res = await fetch('/api/gemini', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, prompt, image })
+      body: JSON.stringify({
+        type,
+        prompt,
+        image,
+        history
+      })
     });
     if (!res.ok) {
       const err = await res.json().catch(()=>({error:`HTTP ${res.status}`}));
@@ -3115,6 +3120,13 @@ function AIBot({ currentUser, onClose }) {
     const q = input.trim();
     if (!q || loading) return;
     setInput("");
+
+    // Capture the existing conversation before adding the new user message.
+    const history = messages.map(m => ({
+      role: m.role,
+      text: m.text
+    }));
+
     setMessages(p => [...p, { role:"user", text:q }]);
     setLoading(true);
 
@@ -3146,7 +3158,7 @@ Keep responses under 150 words unless a detailed explanation is needed.`;
     const fullPrompt = `${systemCtx}\n\nUser: ${q}\n\nAssistant:`;
 
     try {
-      const data = await callGemini('chat', fullPrompt, null);
+      const data = await callGemini('chat', fullPrompt, null, history);
       if (data.success) {
         setMessages(p => [...p, { role:"assistant", text:data.text.trim() }]);
       } else {
