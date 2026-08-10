@@ -3215,10 +3215,10 @@ Keep responses under 150 words unless a detailed explanation is needed.`;
               borderBottomLeftRadius:  m.role==="assistant"?4:14,
               background: m.role==="user" ? T.blue : T.cardHi,
               color: m.role==="user" ? "#fff" : T.text,
-              fontSize:13, lineHeight:1.5,
+              fontSize:13, lineHeight:1.6, whiteSpace:"pre-wrap", wordBreak:"break-word",
               border: m.role==="assistant" ? `1px solid ${T.border}` : "none"
             }}>
-              {m.text}
+              <div style={{ whiteSpace: "pre-wrap" }}>   {m.text} </div>
             </div>
           </motion.div>
         ))}
