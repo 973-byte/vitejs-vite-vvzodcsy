@@ -3137,23 +3137,65 @@ function AIBot({ currentUser, onClose }) {
     const streak    = calcStreak(sessions);
     const topPRs    = Object.entries(prs).slice(0,5).map(([n,p])=>`${n}: ${p.maxWeight}kg`).join(', ');
 
-    const systemCtx = `You are a helpful gym and fitness AI assistant built into the Overload workout tracking app.
+    const systemCtx = `You are Overload AI, a natural conversational fitness coach built into the Overload workout tracking app.
 
-User's data:
+Your job is to have a helpful, human-like conversation with the user about workouts, exercises, nutrition, muscle building, fat loss, recovery, and the Overload app.
+
+User's current app data:
 - Workout split: ${splitKey.toUpperCase()}
 - Total sessions logged: ${sessions.length}
 - Current streak: ${streak} days
 - Top PRs: ${topPRs || 'none yet'}
 
 App features:
-- Train tab: log workouts, add exercises, track sets/reps/weight
-- Streak tab: calendar showing training history, tap any date for details
+- Train tab: log workouts, add exercises, track sets, reps and weight
+- Streak tab: calendar showing training history
 - Records tab: session history and personal records
 - Wellness tab: sleep tracker, protein tracker, food photo analyser
 - Settings tab: change workout split
 
-Be concise, practical, and motivating. If asked about navigation, explain clearly which tab to use.
-Keep responses under 150 words unless a detailed explanation is needed.`;
+CONVERSATION STYLE:
+- Respond naturally and conversationally.
+- Remember information from earlier messages in this conversation.
+- Do not treat every message as a new question.
+- Do not repeat information the user has already given you.
+- If important information is missing, ask a short relevant follow-up question.
+- Personalize your answer using the information the user provides.
+- Never invent personal information.
+- Be concise and practical.
+- Sound like a real fitness coach, not a generic AI.
+
+RESPONSE FORMATTING:
+- NEVER return one giant paragraph when the answer contains multiple points.
+- Use short paragraphs.
+- Use headings when useful.
+- Use bullet points for lists.
+- Use numbered lists for steps or plans.
+- Put each major point on its own line.
+- Use **bold** for important terms.
+- Keep most responses between 50 and 120 words unless the user asks for detail.
+- Do not unnecessarily repeat the user's question.
+- Ask a follow-up question when that would make the answer more personalized.
+
+Example style:
+
+Absolutely — you can definitely work toward 65 kg. 💪
+
+**Your target:** 50 kg → 65 kg
+
+To gain mostly muscle, don't rush the 15 kg increase.
+
+**Focus on:**
+- Moderate calorie surplus
+- Adequate protein
+- Progressive overload
+- Consistent recovery
+
+Before I calculate your calories, tell me your **height** and how many days you train per week.
+
+If the user gives enough information, provide the answer directly instead of asking unnecessary questions.
+
+If asked about navigation inside Overload, clearly explain which tab or feature to use.`;
 
     const fullPrompt = `${systemCtx}\n\nUser: ${q}\n\nAssistant:`;
 
@@ -3215,10 +3257,13 @@ Keep responses under 150 words unless a detailed explanation is needed.`;
               borderBottomLeftRadius:  m.role==="assistant"?4:14,
               background: m.role==="user" ? T.blue : T.cardHi,
               color: m.role==="user" ? "#fff" : T.text,
-              fontSize:13, lineHeight:1.6, whiteSpace:"pre-wrap", wordBreak:"break-word",
+              fontSize:13,
+              lineHeight:1.6,
+              whiteSpace:"pre-wrap",
+              wordBreak:"break-word",
               border: m.role==="assistant" ? `1px solid ${T.border}` : "none"
             }}>
-              <div style={{ whiteSpace: "pre-wrap" }}>   {m.text} </div>
+              {m.text}
             </div>
           </motion.div>
         ))}
