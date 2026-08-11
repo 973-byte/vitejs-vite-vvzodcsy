@@ -1255,10 +1255,8 @@ function LogView({ currentUser, editingSession, onEditDone }) {
             return [...startsWith, ...contains];
           })() : poolForGroup;
 
-          // Recent: only exercises that belong to today's split day
-          const recentForView = recentEx.filter(ex =>
-            !selected.includes(ex) && suggestedPool.includes(ex)
-          );
+          // Recent: last-used exercises, regardless of today's split
+          const recentForView = recentEx.filter(ex => !selected.includes(ex));
 
           return (
             <motion.div initial={{opacity:0,height:0}} animate={{opacity:1,height:"auto"}} exit={{opacity:0,height:0}}
@@ -1280,6 +1278,25 @@ function LogView({ currentUser, editingSession, onEditDone }) {
                   )}
                 </div>
 
+                {/* Recent — directly below search, before body-part filters */}
+                {!q && recentForView.length>0 && (
+                  <div style={{marginBottom:12}}>
+                    <div style={{fontSize:10,color:T.muted,marginBottom:6,letterSpacing:"0.06em",display:"flex",alignItems:"center",gap:5}}>
+                      <Icon name="history" size={11} color={T.muted}/> LAST USED
+                    </div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                      {recentForView.slice(0,8).map(ex=>(
+                        <motion.button key={ex} onClick={()=>toggleEx(ex)} whileTap={{scale:0.93}} style={{
+                          background:T.cardHi,border:`1px solid ${meta.color}44`,
+                          color:meta.color,borderRadius:20,padding:"4px 12px",fontSize:11,
+                          cursor:"pointer",fontWeight:500,display:"flex",alignItems:"center",gap:4}}>
+                          <Icon name="history" size={10} color={meta.color}/>{ex}
+                        </motion.button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Body part filter tabs — hidden while searching */}
                 {!q && (
                   <div style={{display:"flex",gap:5,overflowX:"auto",marginBottom:12,scrollbarWidth:"none",paddingBottom:4}}>
@@ -1299,25 +1316,6 @@ function LogView({ currentUser, editingSession, onEditDone }) {
                         {g.label}
                       </motion.button>
                     ))}
-                  </div>
-                )}
-
-                {/* Recent — only when not searching, only current day's split exercises */}
-                {!q && recentForView.length>0 && (
-                  <div style={{marginBottom:12}}>
-                    <div style={{fontSize:10,color:T.muted,marginBottom:6,letterSpacing:"0.06em",display:"flex",alignItems:"center",gap:5}}>
-                      <Icon name="history" size={11} color={T.muted}/> RECENT
-                    </div>
-                    <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-                      {recentForView.slice(0,8).map(ex=>(
-                        <motion.button key={ex} onClick={()=>toggleEx(ex)} whileTap={{scale:0.93}} style={{
-                          background:T.cardHi,border:`1px solid ${meta.color}44`,
-                          color:meta.color,borderRadius:20,padding:"4px 12px",fontSize:11,
-                          cursor:"pointer",fontWeight:500,display:"flex",alignItems:"center",gap:4}}>
-                          <Icon name="clone" size={10} color={meta.color}/>{ex}
-                        </motion.button>
-                      ))}
-                    </div>
                   </div>
                 )}
 
