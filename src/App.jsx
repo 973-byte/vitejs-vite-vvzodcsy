@@ -1035,6 +1035,7 @@ function AdminPanel({ currentUser }) {
 // ─── Log View ─────────────────────────────────────────────────────────────────
 function LogView({ currentUser, editingSession, onEditDone }) {
   const isEditing = !!editingSession;
+  const [workoutDate, setWorkoutDate] = useState(()=>editingSession?editingSession.date:todayISO());
   const [day, setDay]       = useState(()=>editingSession?editingSession.day:todayName());
   const [selected, setSelected]= useState(()=>editingSession?editingSession.exercises.map(e=>e.name):[]);
   const [logData, setLogData]  = useState(()=>editingSession
@@ -1050,10 +1051,17 @@ function LogView({ currentUser, editingSession, onEditDone }) {
   const [showTimer, setShowTimer]= useState(false);
   const [showPlate, setShowPlate]= useState(false);
   const [prExercises, setPrExercises] = useState([]);
-  const [recentEx, setRecentEx] = useState(()=>S.get(`wt_recent_${currentUser.id}`,[]));
+  const [recentByDay, setRecentByDay] = useState(()=>{
+    const stored = S.get(`wt_recent_${currentUser.id}`,{});
+    // Migrate the old global recent-exercise array into today's day bucket.
+    if (Array.isArray(stored)) return { [todayName()]: stored };
+    return stored || {};
+  });
+  const recentEx = recentByDay[day] || [];
 
   useEffect(()=>{
     if (editingSession) {
+      setWorkoutDate(editingSession.date);
       setDay(editingSession.day);
       setSelected(editingSession.exercises.map(e=>e.name));
       setLogData(Object.fromEntries(editingSession.exercises.map(e=>[e.name,e.sets.map(s=>({...s}))])));
@@ -1066,25 +1074,28 @@ function LogView({ currentUser, editingSession, onEditDone }) {
   const meta     = activeSplit.days[day] || Object.values(WORKOUT_SPLITS.ppl.days)[0];
   const sessions = S.get("wt_sessions",[]);
   const lastSame = useMemo(()=>{
-    const refDate = isEditing?editingSession.date:todayISO();
+    const refDate = isEditing ? editingSession.date : workoutDate;
     return sessions.filter(s=>s.day===day&&s.date!==refDate&&s.userId===currentUser.id)
       .sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
-  },[day,sessions.length,editingSession?.id]);
+  },[day,workoutDate,sessions.length,editingSession?.id]);
 
   function cloneLastSession() {
     if (!lastSame) return;
     setSelected(lastSame.exercises.map(e=>e.name));
     setLogData(Object.fromEntries(lastSame.exercises.map(e=>[e.name,e.sets.map(s=>({...s}))])));
     setShowPicker(false);
-    const updated = [...lastSame.exercises.map(e=>e.name), ...recentEx].filter((v,i,a)=>a.indexOf(v)===i).slice(0,8);
-    setRecentEx(updated);
-    S.set(`wt_recent_${currentUser.id}`, updated);
+    const updated = [...lastSame.exercises.map(e=>e.name), ...recentEx]
+      .filter((v,i,a)=>a.indexOf(v)===i).slice(0,8);
+    const next = {...recentByDay, [day]:updated};
+    setRecentByDay(next);
+    S.set(`wt_recent_${currentUser.id}`, next);
   }
 
   function addToRecent(ex) {
     const updated = [ex, ...recentEx.filter(e=>e!==ex)].slice(0,8);
-    setRecentEx(updated);
-    S.set(`wt_recent_${currentUser.id}`, updated);
+    const next = {...recentByDay, [day]:updated};
+    setRecentByDay(next);
+    S.set(`wt_recent_${currentUser.id}`, next);
   }
 
   function toggleEx(ex) {
@@ -1099,7 +1110,7 @@ function LogView({ currentUser, editingSession, onEditDone }) {
   function removeEx(ex)    { setSelected(p=>p.filter(e=>e!==ex)); }
 
   function saveSession() {
-    const date = isEditing?editingSession.date:todayISO();
+    const date = isEditing ? editingSession.date : workoutDate;
     const id   = isEditing?editingSession.id:Date.now();
     const exercisesData = selected
       .filter(ex=>logData[ex]?.some(s=>s.weight||s.reps))
@@ -1186,20 +1197,48 @@ function LogView({ currentUser, editingSession, onEditDone }) {
         </motion.div>
       )}
 
-      {/* Day strip */}
+      {/* Workout date — allows logging previous days */}
+      <div style={{marginBottom:12}}>
+        <div style={{fontSize:10,fontWeight:700,color:T.muted,letterSpacing:"0.06em",marginBottom:6}}>WORKOUT DATE</div>
+        <input
+          type="date"
+          value={workoutDate}
+          max={todayISO()}
+          disabled={isEditing}
+          onChange={e=>{
+            const value=e.target.value;
+            if(!value) return;
+            const dt=new Date(`${value}T12:00:00`);
+            const nextDay=DAYS[dt.getDay()===0?6:dt.getDay()-1];
+            setWorkoutDate(value);
+            setDay(nextDay);
+            setSelected([]);
+            setLogData({});
+            setShowPicker(false);
+            setPickerQuery("");
+            setPickerGroup("all");
+          }}
+          style={{
+            width:"100%", boxSizing:"border-box", background:T.card, color:T.text,
+            border:`1px solid ${T.border}`, borderRadius:10, padding:"9px 12px",
+            fontSize:13, outline:"none", colorScheme:"dark", opacity:isEditing?0.65:1
+          }}
+        />
+      </div>
+
+      {/* Day indicator — automatically follows the selected date */}
       <div style={{ display:"flex", gap:6, overflowX:"auto", paddingBottom:8, marginBottom:20, scrollbarWidth:"none" }}>
         {DAYS.map(d=>{
           const m=SCHEDULE[d], act=d===day;
           return (
-            <motion.button key={d} onClick={()=>{ if(isEditing)return; setDay(d);setSelected([]);setLogData({});setShowPicker(false); }}
-              whileTap={{scale:isEditing?1:0.94}} style={{
-                flexShrink:0, background:act?m.color:T.card, border:act?"none":`1px solid ${T.border}`,
-                borderRadius:10, padding:"7px 14px", cursor:isEditing?"default":"pointer",
-                color:act?(m.color===T.yellow?T.bg:"#fff"):T.muted,
-                fontWeight:act?700:400, fontSize:12, boxShadow:act?`0 0 16px ${m.color}55`:"none",
-                opacity:isEditing&&!act?0.3:1 }}>
+            <div key={d} style={{
+              flexShrink:0, background:act?m.color:T.card, border:act?"none":`1px solid ${T.border}`,
+              borderRadius:10, padding:"7px 14px", color:act?(m.color===T.yellow?T.bg:"#fff"):T.muted,
+              fontWeight:act?700:400, fontSize:12, boxShadow:act?`0 0 16px ${m.color}55`:"none",
+              opacity:act?1:0.65
+            }}>
               {d.slice(0,3)}
-            </motion.button>
+            </div>
           );
         })}
       </div>
@@ -1208,6 +1247,7 @@ function LogView({ currentUser, editingSession, onEditDone }) {
       <div style={{marginBottom:20}}>
         <div style={{fontSize:22,fontWeight:800,color:meta.color,letterSpacing:"-0.5px"}}>{meta.label}</div>
         <div style={{fontSize:13,color:T.muted,marginTop:2}}>{meta.sub}</div>
+        <div style={{fontSize:11,color:T.blue,marginTop:5,fontWeight:600}}>{fmtDate(workoutDate)}</div>
         {lastSame && <div style={{fontSize:11,color:T.muted,marginTop:4}}>Last {day}: {fmtDate(lastSame.date)}</div>}
       </div>
 
